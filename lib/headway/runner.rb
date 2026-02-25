@@ -51,23 +51,14 @@ module Headway
 		end
 
 		def build_ai_client
-			case @config.ai_provider
-			when "anthropic"
-				AnthropicClient.new(
-					base_url: @config.ai_base_url,
-					api_key: @config.ai_api_key,
-					model: @config.ai_model
-				)
-			else
-				# When the key came from Codex CLI OAuth, use the Responses
-				# API which is covered by ChatGPT Pro subscriptions.
-				client_class = @config.using_codex_auth? ? ResponsesClient : AIClient
-				client_class.new(
-					base_url: @config.ai_base_url,
-					api_key: @config.ai_api_key,
-					model: @config.ai_model
-				)
-			end
+			# When the key came from Codex CLI OAuth, use the Responses
+			# API which is covered by ChatGPT Pro subscriptions.
+			client_class = @config.using_codex_auth? ? ResponsesClient : AIClient
+			client_class.new(
+				base_url: @config.ai_base_url,
+				api_key: @config.ai_api_key,
+				model: @config.ai_model
+			)
 		end
 	end
 end

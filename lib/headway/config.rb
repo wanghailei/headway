@@ -15,11 +15,6 @@ module Headway
 			@data = YAML.load_file( path )
 		end
 
-		# Provider type: "openai" (default) or "anthropic".
-		def ai_provider
-			ENV["HEADWAY_AI_PROVIDER"] || @data.dig( "ai", "provider" ) || "openai"
-		end
-
 		def ai_base_url
 			ENV["HEADWAY_AI_BASE_URL"] || @data.dig( "ai", "base_url" )
 		end
