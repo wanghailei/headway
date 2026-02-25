@@ -111,6 +111,36 @@ class TestConfig < Minitest::Test
 		Headway::Config.const_set( :CODEX_AUTH_PATH, original )
 	end
 
+	def test_using_codex_auth_true_when_only_codex_token
+		ENV.delete( "HEADWAY_AI_API_KEY" )
+		ENV.delete( "OPENAI_API_KEY" )
+
+		codex_dir = File.join( @dir, ".codex" )
+		FileUtils.mkdir_p( codex_dir )
+		auth_path = File.join( codex_dir, "auth.json" )
+		File.write( auth_path, JSON.generate( {
+			"tokens" => { "access_token" => "codex-oauth-token" }
+		} ) )
+
+		original = Headway::Config::CODEX_AUTH_PATH
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, auth_path )
+
+		config = Headway::Config.new( @config_path )
+		assert config.using_codex_auth?
+	ensure
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, original )
+	end
+
+	def test_using_codex_auth_false_when_env_key_set
+		ENV["HEADWAY_AI_API_KEY"] = "explicit-key"
+		config = Headway::Config.new( @config_path )
+		refute config.using_codex_auth?
+	ensure
+		ENV.delete( "HEADWAY_AI_API_KEY" )
+	end
+
 	def test_env_overrides_base_url
 		ENV["HEADWAY_AI_BASE_URL"] = "https://custom.api.com/v1"
 		config = Headway::Config.new( @config_path )

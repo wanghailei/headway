@@ -59,7 +59,10 @@ module Headway
 					model: @config.ai_model
 				)
 			else
-				AIClient.new(
+				# When the key came from Codex CLI OAuth, use the Responses
+				# API which is covered by ChatGPT Pro subscriptions.
+				client_class = @config.using_codex_auth? ? ResponsesClient : AIClient
+				client_class.new(
 					base_url: @config.ai_base_url,
 					api_key: @config.ai_api_key,
 					model: @config.ai_model

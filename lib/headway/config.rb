@@ -48,6 +48,13 @@ module Headway
 			@data.dig( "schedule", "interval_hours" ) || 2
 		end
 
+		# True when the API key came from Codex CLI's OAuth token rather
+		# than an explicit env var. Runner uses this to pick the Responses
+		# API endpoint (covered by ChatGPT Pro) instead of Chat Completions.
+		def using_codex_auth?
+			ENV["HEADWAY_AI_API_KEY"].nil? && ENV["OPENAI_API_KEY"].nil? && !codex_access_token.nil?
+		end
+
 	private
 
 		# Reads the OAuth access token that Codex CLI stores after
