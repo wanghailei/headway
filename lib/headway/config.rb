@@ -24,8 +24,10 @@ module Headway
 		end
 
 		# API key is environment-only for security — never loaded from config file.
+		# Falls back to OPENAI_API_KEY for compatibility with Codex CLI and
+		# other OpenAI tools that use the standard variable name.
 		def ai_api_key
-			ENV["HEADWAY_AI_API_KEY"]
+			ENV["HEADWAY_AI_API_KEY"] || ENV["OPENAI_API_KEY"]
 		end
 
 		def collectors
