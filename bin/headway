@@ -2,6 +2,8 @@
 # CLI entry point for Headway. Dispatches to run or version commands.
 # Usage: bin/headway run | bin/headway version
 
+require "bundler/setup"
+require "dotenv/load"
 require_relative "../lib/headway"
 
 command = ARGV[0]
