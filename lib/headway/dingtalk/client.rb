@@ -47,13 +47,17 @@ module Headway
 
 			# POST request to legacy API (oapi.dingtalk.com).
 			# Token passed as query param instead of header.
+			# Legacy API returns errors as HTTP 200 with errcode != 0,
+			# so we check the errcode after the HTTP-level check.
 			def legacy_post( path, body: {}, connection: nil )
 				conn = connection || build_legacy_connection
 				ensure_token( connection: connection )
 				response = conn.post( path, body ) do | req |
 					req.params["access_token"] = @token
 				end
-				handle_response( response )
+				result = handle_response( response )
+				check_legacy_errcode( result )
+				result
 			end
 
 		private
@@ -96,6 +100,12 @@ module Headway
 					f.response :json
 					f.adapter Faraday.default_adapter
 				end
+			end
+
+			def check_legacy_errcode( result )
+				return unless result.is_a?( Hash ) && result["errcode"]
+				return if result["errcode"] == 0
+				raise APIError, "DingTalk legacy API error #{result["errcode"]}: #{result["errmsg"]}"
 			end
 
 			def handle_response( response )

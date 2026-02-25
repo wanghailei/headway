@@ -45,7 +45,7 @@ module Headway
 					all_reports.concat( data )
 
 					break unless result.dig( "result", "has_more" )
-					cursor += data.length
+					cursor = result.dig( "result", "next_cursor" ) || 0
 				end
 
 				all_reports

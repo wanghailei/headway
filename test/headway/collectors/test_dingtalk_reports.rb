@@ -105,6 +105,54 @@ class TestDingtalkReports < Minitest::Test
 		assert_equal "周报", body[:template_name]
 	end
 
+	def test_paginates_using_next_cursor
+		call_count = 0
+		client = FakeDingTalkClient.new
+		# Override legacy_post to simulate pagination with next_cursor
+		def client.legacy_post( path, body: {}, connection: nil )
+			@requests << { method: :legacy_post, path: path, body: body }
+			@call_count ||= 0
+			@call_count += 1
+			if @call_count == 1
+				{
+					"errcode" => 0,
+					"result" => {
+						"data_list" => [ {
+							"report_id" => "rpt-1", "template_name" => "日报",
+							"creator_name" => "Alice", "create_time" => 1740441600000,
+							"contents" => []
+						} ],
+						"has_more" => true,
+						"next_cursor" => 6834017941
+					}
+				}
+			else
+				{
+					"errcode" => 0,
+					"result" => {
+						"data_list" => [ {
+							"report_id" => "rpt-2", "template_name" => "日报",
+							"creator_name" => "Bob", "create_time" => 1740528000000,
+							"contents" => []
+						} ],
+						"has_more" => false
+					}
+				}
+			end
+		end
+
+		collector = Headway::Collectors::DingtalkReports.new(
+			client: client,
+			interval_hours: 168
+		)
+		items = collector.collect
+		assert_equal 2, items[0][:files].length
+
+		# Verify second call used next_cursor, not offset
+		second_body = client.requests[1][:body]
+		assert_equal 6834017941, second_body[:cursor]
+	end
+
 	def test_returns_empty_for_no_reports
 		client = FakeDingTalkClient.new
 		collector = Headway::Collectors::DingtalkReports.new(

@@ -181,6 +181,43 @@ class TestDingTalkClient < Minitest::Test
 		assert_includes error.message, "Service Unavailable"
 	end
 
+	def test_legacy_post_raises_on_errcode
+		stubs = build_stubs do | stub |
+			stub.post( "v1.0/oauth2/accessToken" ) do | env |
+				[ 200, { "Content-Type" => "application/json" }, auth_response ]
+			end
+			stub.post( "/topapi/report/list" ) do | env |
+				[ 200, { "Content-Type" => "application/json" },
+					JSON.generate( { errcode: 88, errmsg: "missing permission" } ) ]
+			end
+		end
+		conn = build_connection( stubs )
+
+		client = Headway::DingTalk::Client.new( app_key: "key", app_secret: "secret" )
+		error = assert_raises( Headway::DingTalk::Client::APIError ) do
+			client.legacy_post( "/topapi/report/list", body: {}, connection: conn )
+		end
+		assert_includes error.message, "88"
+		assert_includes error.message, "missing permission"
+	end
+
+	def test_legacy_post_passes_on_errcode_zero
+		stubs = build_stubs do | stub |
+			stub.post( "v1.0/oauth2/accessToken" ) do | env |
+				[ 200, { "Content-Type" => "application/json" }, auth_response ]
+			end
+			stub.post( "/topapi/report/list" ) do | env |
+				[ 200, { "Content-Type" => "application/json" },
+					JSON.generate( { errcode: 0, errmsg: "ok", result: { data_list: [] } } ) ]
+			end
+		end
+		conn = build_connection( stubs )
+
+		client = Headway::DingTalk::Client.new( app_key: "key", app_secret: "secret" )
+		result = client.legacy_post( "/topapi/report/list", body: {}, connection: conn )
+		assert_equal 0, result["errcode"]
+	end
+
 	def test_raises_on_missing_app_key
 		assert_raises( ArgumentError ) do
 			Headway::DingTalk::Client.new( app_key: nil, app_secret: "secret" )
