@@ -4,6 +4,7 @@
 # This handles both structured (folder-per-issue) and unstructured
 # (flat employee reports) data sources.
 
+require "date"
 require "json"
 
 module Headway
@@ -25,14 +26,16 @@ module Headway
 			- 仅输出有效的 JSON — 不要 markdown 代码块，不要解释说明
 		PROMPT
 
-		SYNTHESIZE_SYSTEM = <<~PROMPT
+		SYNTHESIZE_TEMPLATE = <<~PROMPT
 			你是 Headway，一个为高管编写进度报告的助手。
 			你将收到关于单个议题或项目的摘录，请用中文撰写简洁的状态报告段落。
+
+			今天的日期是：%<today>s
 
 			格式规则：
 			- 以 ### 开头，包含状态指示符和议题名称
 			- 如果能从内容推断，标注"截止日期："和"@负责人"
-			- 标注"最后更新："加今天的日期
+			- 标注"最后更新：%<today>s"
 			- 用 2-4 句话综合当前状态
 			- 状态指示符：
 			  🟢 正常 — 进展顺利
@@ -72,7 +75,8 @@ module Headway
 		def synthesize_issue( issue )
 			excerpts = issue["excerpts"] || []
 			prompt = "Issue: #{issue["name"]}\n\nRelevant excerpts:\n\n#{excerpts.join( "\n\n---\n\n" )}"
-			@ai_client.chat( prompt, system: SYNTHESIZE_SYSTEM )
+			system = format( SYNTHESIZE_TEMPLATE, today: Date.today.to_s )
+			@ai_client.chat( prompt, system: system )
 		end
 
 		def build_extraction_prompt( items )

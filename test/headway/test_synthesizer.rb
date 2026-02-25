@@ -140,6 +140,7 @@ class TestSynthesizer < Minitest::Test
 		assert_includes synth_system, "状态指示符"
 		assert_includes synth_system, "🟢"
 		assert_includes synth_system, "🔴"
+		assert_includes synth_system, Date.today.to_s
 	end
 
 	def test_handles_multiple_items_from_different_sources
