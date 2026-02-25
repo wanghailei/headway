@@ -6,9 +6,11 @@ ai:
 collectors:
   - type: dingtalk_reports
   - type: dingtalk_todos
-  - type: dingtalk_meetings
+  # - type: dingtalk_meetings  # needs VideoConference.Conference.Read permission
   - type: local_files
     path: ./issues
+  - type: local_files
+    path: ./meetings
 
 publishers:
   - type: markdown_file

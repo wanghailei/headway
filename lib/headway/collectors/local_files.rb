@@ -1,7 +1,13 @@
-# Convention-based local file collector. Scans a directory where each
-# top-level subfolder represents a "thing" (project, issue, goal) and
-# contains date-prefixed markdown files. Folders starting with "_"
-# are ignored (templates, archives, etc.).
+# Convention-based local file collector. Scans a directory for updates:
+#
+# 1. Each top-level subfolder represents a "thing" (project, issue, goal)
+#    and contains date-prefixed markdown files. Folders starting with "_"
+#    are ignored (templates, archives, etc.).
+#
+# 2. Loose .md files at the root level are collected as individual items,
+#    using the filename (without extension) as the item name. This allows
+#    simple drop-in usage: employees drop meeting notes or issue reports
+#    directly into the folder without creating subfolders.
 
 module Headway
 	module Collectors
@@ -11,12 +17,23 @@ module Headway
 			end
 
 			def collect
+				return [] unless File.directory?( @path )
+
+				items = []
+				items.concat( collect_folders )
+				items.concat( collect_loose_files )
+				items
+			end
+
+		private
+
+			def collect_folders
 				Dir.children( @path )
 					.select do | name |
 						File.directory?( File.join( @path, name ) )
 					end
 					.reject do | name |
-						name.start_with?( "_" )
+						name.start_with?( "_" ) || name.start_with?( "." )
 					end
 					.sort
 					.map do | name |
@@ -24,7 +41,20 @@ module Headway
 					end
 			end
 
-		private
+			def collect_loose_files
+				Dir.children( @path )
+					.select do | name |
+						name.end_with?( ".md" ) && !name.start_with?( "." )
+					end
+					.sort
+					.map do | name |
+						item_name = File.basename( name, ".md" )
+						{
+							name: item_name,
+							files: [ read_file( @path, name ) ]
+						}
+					end
+			end
 
 			def collect_thing( name )
 				thing_path = File.join( @path, name )

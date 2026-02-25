@@ -1,6 +1,6 @@
 # Tests for Headway::Collectors::LocalFiles. Verifies convention-based
 # folder scanning: thing discovery, file sorting, content reading,
-# and underscore-prefixed folder exclusion.
+# underscore-prefixed folder exclusion, and loose file collection.
 
 require "test_helper"
 require "headway/collectors/local_files"
@@ -74,5 +74,44 @@ class TestLocalFilesCollector < Minitest::Test
 			i[:name]
 		end
 		refute_includes names, "_templates"
+	end
+
+	def test_collects_loose_md_files
+		File.write( File.join( @dir, "周例会笔记.md" ), "# 周例会\n讨论了项目进度。" )
+
+		collector = Headway::Collectors::LocalFiles.new( @dir )
+		items = collector.collect
+
+		meeting_item = items.find { | i | i[:name] == "周例会笔记" }
+		assert meeting_item, "Should collect loose .md files"
+		assert_equal 1, meeting_item[:files].length
+		assert_includes meeting_item[:files][0][:content], "讨论了项目进度"
+	end
+
+	def test_loose_files_use_filename_as_name
+		File.write( File.join( @dir, "Q1-Review.md" ), "# Q1 Review\nMet targets." )
+
+		collector = Headway::Collectors::LocalFiles.new( @dir )
+		items = collector.collect
+
+		review = items.find { | i | i[:name] == "Q1-Review" }
+		assert review, "Should use filename without extension as name"
+	end
+
+	def test_returns_empty_for_nonexistent_path
+		collector = Headway::Collectors::LocalFiles.new( "/tmp/nonexistent_#{$$}" )
+		items = collector.collect
+
+		assert_equal [], items
+	end
+
+	def test_ignores_dotfiles
+		File.write( File.join( @dir, ".gitkeep" ), "" )
+
+		collector = Headway::Collectors::LocalFiles.new( @dir )
+		items = collector.collect
+
+		names = items.map { | i | i[:name] }
+		refute names.any? { | n | n.start_with?( "." ) }
 	end
 end
