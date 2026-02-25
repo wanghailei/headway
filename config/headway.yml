@@ -4,19 +4,19 @@ ai:
   model: gpt-4o
 
 collectors:
-  - type: local_files
-    path: ./input
   - type: dingtalk_reports
+  # - type: local_files
+  #   path: ./input
   # - type: dingtalk_todos
   #   operator_user_id: "your-user-id"
 
 publishers:
   - type: markdown_file
-    path: ./output/report.md
+    path: ./output
   # - type: dingtalk_doc
   #   space_id: "your-space-id"
   #   doc_id: "your-doc-id"
   #   operator_user_id: "your-user-id"
 
 schedule:
-  interval_hours: 48
+  interval_hours: 1344

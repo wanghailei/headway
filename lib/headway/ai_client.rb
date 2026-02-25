@@ -46,7 +46,7 @@ module Headway
 				f.response :json
 				f.headers["Authorization"] = "Bearer #{@api_key}"
 				f.options.open_timeout = 10
-				f.options.timeout = 120
+				f.options.timeout = 300
 				f.adapter Faraday.default_adapter
 			end
 		end

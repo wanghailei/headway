@@ -17,8 +17,8 @@ class TestRunner < Minitest::Test
 			"Sprint 4 on track. Backend migration done."
 		)
 
-		# Output path
-		@output_path = File.join( @dir, "output", "report.md" )
+		# Output directory
+		@output_dir = File.join( @dir, "output" )
 
 		# Template
 		@template_path = File.join( @dir, "report.md.erb" )
@@ -39,7 +39,7 @@ class TestRunner < Minitest::Test
 			    path: #{@input_dir}
 			publishers:
 			  - type: markdown_file
-			    path: #{@output_path}
+			    path: #{@output_dir}
 		YAML
 	end
 
@@ -59,8 +59,9 @@ class TestRunner < Minitest::Test
 		runner = Headway::Runner.new( config, ai_client: fake_ai, template_path: @template_path )
 		runner.run
 
-		assert File.exist?( @output_path ), "Report file should exist at #{@output_path}"
-		content = File.read( @output_path )
+		files = Dir.glob( File.join( @output_dir, "RP.*.md" ) )
+		assert_equal 1, files.length, "Should produce one timestamped report file"
+		content = File.read( files.first )
 		assert_includes content, "Headway Report"
 		assert_includes content, "Project Alpha"
 	end
