@@ -33,8 +33,8 @@ module Headway
 			response = conn.post( "/v1/messages", body )
 
 			unless response.success?
-				error_msg = response.body.dig( "error", "message" ) || response.body.to_s
-				raise APIError, "Anthropic API returned #{response.status}: #{error_msg}"
+				error_msg = response.body.is_a?( Hash ) ? response.body.dig( "error", "message" ) : nil
+				raise APIError, "Anthropic API returned #{response.status}: #{error_msg || response.body.to_s}"
 			end
 
 			# Anthropic returns content as an array of blocks.

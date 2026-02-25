@@ -27,8 +27,8 @@ module Headway
 			response = conn.post( "/v1/responses", body )
 
 			unless response.success?
-				error_msg = response.body.dig( "error", "message" ) || response.body.to_s
-				raise APIError, "Responses API returned #{response.status}: #{error_msg}"
+				error_msg = response.body.is_a?( Hash ) ? response.body.dig( "error", "message" ) : nil
+				raise APIError, "Responses API returned #{response.status}: #{error_msg || response.body.to_s}"
 			end
 
 			extract_text( response.body )

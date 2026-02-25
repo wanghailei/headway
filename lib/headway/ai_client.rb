@@ -29,8 +29,8 @@ module Headway
 			response = conn.post( "/v1/chat/completions", body )
 
 			unless response.success?
-				error_msg = response.body.dig( "error", "message" ) || response.body.to_s
-				raise APIError, "AI API returned #{response.status}: #{error_msg}"
+				error_msg = response.body.is_a?( Hash ) ? response.body.dig( "error", "message" ) : nil
+				raise APIError, "AI API returned #{response.status}: #{error_msg || response.body.to_s}"
 			end
 
 			response.body.dig( "choices", 0, "message", "content" )
