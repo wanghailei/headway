@@ -1,4 +1,4 @@
-# Thor-based CLI for Headway. Provides the `run` and `version` commands.
+# Thor-based CLI for Headway. Provides the `run`, `watch`, and `version` commands.
 # Invoked from bin/headway.
 
 require "thor"
@@ -15,6 +15,16 @@ module Headway
 			puts "Done. Report published."
 		end
 		map "run" => :run_cycle
+
+		desc "watch", "Run the pipeline on a recurring schedule"
+		def watch
+			config = Config.new
+			runner = Runner.new( config )
+			scheduler = Scheduler.new( runner, interval_hours: config.interval_hours )
+
+			puts "Headway v#{VERSION} — watching (every #{config.interval_hours}h, Ctrl+C to stop)"
+			scheduler.start
+		end
 
 		desc "version", "Show version"
 		def version
