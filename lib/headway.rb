@@ -2,6 +2,7 @@
 # and loads core dependencies.
 
 require_relative "headway/config"
+require_relative "headway/runner"
 
 module Headway
 	VERSION = "0.1.0"
