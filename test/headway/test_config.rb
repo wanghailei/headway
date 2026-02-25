@@ -160,4 +160,28 @@ class TestConfig < Minitest::Test
 		assert_equal 1, config.publishers.length
 		assert_equal "markdown_file", config.publishers.first["type"]
 	end
+
+	def test_dingtalk_app_key_from_env
+		ENV["DINGTALK_APP_KEY"] = "dk-test-key"
+		config = Headway::Config.new( @config_path )
+		assert_equal "dk-test-key", config.dingtalk_app_key
+	ensure
+		ENV.delete( "DINGTALK_APP_KEY" )
+	end
+
+	def test_dingtalk_app_secret_from_env
+		ENV["DINGTALK_APP_SECRET"] = "dk-test-secret"
+		config = Headway::Config.new( @config_path )
+		assert_equal "dk-test-secret", config.dingtalk_app_secret
+	ensure
+		ENV.delete( "DINGTALK_APP_SECRET" )
+	end
+
+	def test_dingtalk_credentials_nil_when_unset
+		ENV.delete( "DINGTALK_APP_KEY" )
+		ENV.delete( "DINGTALK_APP_SECRET" )
+		config = Headway::Config.new( @config_path )
+		assert_nil config.dingtalk_app_key
+		assert_nil config.dingtalk_app_secret
+	end
 end

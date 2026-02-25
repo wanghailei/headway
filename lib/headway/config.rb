@@ -43,6 +43,14 @@ module Headway
 			@data.dig( "schedule", "interval_hours" ) || 2
 		end
 
+		def dingtalk_app_key
+			ENV["DINGTALK_APP_KEY"]
+		end
+
+		def dingtalk_app_secret
+			ENV["DINGTALK_APP_SECRET"]
+		end
+
 		# True when the API key came from Codex CLI's OAuth token rather
 		# than an explicit env var. Runner uses this to pick the Responses
 		# API endpoint (covered by ChatGPT Pro) instead of Chat Completions.
