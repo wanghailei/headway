@@ -8,7 +8,7 @@ require "json"
 class TestResponsesClient < Minitest::Test
 	def build_stubs( &block )
 		stubs = Faraday::Adapter::Test::Stubs.new
-		stubs.post( "/v1/responses", &block )
+		stubs.post( "responses", &block )
 		stubs
 	end
 

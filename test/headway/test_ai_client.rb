@@ -9,7 +9,7 @@ require "json"
 class TestAIClient < Minitest::Test
 	def build_stubs( &block )
 		stubs = Faraday::Adapter::Test::Stubs.new
-		stubs.post( "/v1/chat/completions", &block )
+		stubs.post( "chat/completions", &block )
 		stubs
 	end
 

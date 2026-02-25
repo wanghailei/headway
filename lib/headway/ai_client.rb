@@ -26,7 +26,7 @@ module Headway
 
 			body = { model: @model, messages: messages }
 
-			response = conn.post( "/v1/chat/completions", body )
+			response = conn.post( "chat/completions", body )
 
 			unless response.success?
 				error_msg = response.body.is_a?( Hash ) ? response.body.dig( "error", "message" ) : nil
@@ -39,7 +39,9 @@ module Headway
 	private
 
 		def build_connection
-			Faraday.new( url: @base_url ) do | f |
+			# Trailing slash ensures relative POST paths append correctly.
+			base = @base_url.end_with?( "/" ) ? @base_url : "#{@base_url}/"
+			Faraday.new( url: base ) do | f |
 				f.request :json
 				f.response :json
 				f.headers["Authorization"] = "Bearer #{@api_key}"

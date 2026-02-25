@@ -24,7 +24,7 @@ module Headway
 			body = { model: @model, input: prompt }
 			body[:instructions] = system if system
 
-			response = conn.post( "/v1/responses", body )
+			response = conn.post( "responses", body )
 
 			unless response.success?
 				error_msg = response.body.is_a?( Hash ) ? response.body.dig( "error", "message" ) : nil
@@ -37,7 +37,8 @@ module Headway
 	private
 
 		def build_connection
-			Faraday.new( url: @base_url ) do | f |
+			base = @base_url.end_with?( "/" ) ? @base_url : "#{@base_url}/"
+			Faraday.new( url: base ) do | f |
 				f.request :json
 				f.response :json
 				f.headers["Authorization"] = "Bearer #{@api_key}"
