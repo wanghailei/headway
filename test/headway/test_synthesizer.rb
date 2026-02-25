@@ -87,13 +87,13 @@ class TestSynthesizer < Minitest::Test
 			{ name: "Reports", files: [ { filename: "update.md", content: "progress" } ] }
 		]
 
-		fake = FakeAIClient.new( "not valid json at all", "### General Update\nSummary." )
+		fake = FakeAIClient.new( "not valid json at all", "### 综合更新\n概要。" )
 		result = Headway::Synthesizer.new( fake ).synthesize( items )
 
-		# Fallback creates one "General Update" issue → 1 extraction + 1 synthesis
+		# Fallback creates one "综合更新" issue → 1 extraction + 1 synthesis
 		assert_equal 2, fake.calls.length
-		assert_includes fake.calls[1][:prompt], "General Update"
-		assert_equal "### General Update\nSummary.", result
+		assert_includes fake.calls[1][:prompt], "综合更新"
+		assert_equal "### 综合更新\n概要。", result
 	end
 
 	def test_strips_code_fences_from_extraction_response
@@ -125,7 +125,7 @@ class TestSynthesizer < Minitest::Test
 		Headway::Synthesizer.new( fake ).synthesize( items )
 
 		extract_system = fake.calls[0][:system]
-		assert_includes extract_system, "identify every distinct issue"
+		assert_includes extract_system, "识别"
 		assert_includes extract_system, "JSON"
 	end
 
@@ -137,7 +137,7 @@ class TestSynthesizer < Minitest::Test
 		Headway::Synthesizer.new( fake ).synthesize( items )
 
 		synth_system = fake.calls[1][:system]
-		assert_includes synth_system, "status indicator"
+		assert_includes synth_system, "状态指示符"
 		assert_includes synth_system, "🟢"
 		assert_includes synth_system, "🔴"
 	end

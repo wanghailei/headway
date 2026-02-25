@@ -9,41 +9,39 @@ require "json"
 module Headway
 	class Synthesizer
 		EXTRACT_SYSTEM = <<~PROMPT
-			You are Headway, a progress-tracking assistant. Your task is to
-			identify every distinct issue, project, or topic mentioned in the
-			collected employee updates below.
+			你是 Headway，一个进度追踪助手。你的任务是从下面收集的员工更新中
+			识别出每一个不同的议题、项目或主题。
 
-			Group related information together even when it comes from different
-			people or data sources. One entry per issue, not per person.
+			即使信息来自不同的人或数据源，也要将相关信息归为同一议题。
+			按议题分组，而非按人分组。
 
-			Return a JSON array. Each element has:
-			  "name"     — short issue/project title
-			  "excerpts" — array of relevant text snippets from the updates
+			返回一个 JSON 数组，每个元素包含：
+			  "name"     — 简短的议题/项目标题
+			  "excerpts" — 相关的文本摘录数组
 
-			Rules:
-			- If an update mentions multiple issues, include its text under each
-			- Preserve the original language (Chinese, English, etc.)
-			- Output valid JSON only — no markdown fences, no explanation
+			规则：
+			- 如果一条更新涉及多个议题，将其文本分别归入每个相关议题
+			- 保留摘录的原始语言
+			- 仅输出有效的 JSON — 不要 markdown 代码块，不要解释说明
 		PROMPT
 
 		SYNTHESIZE_SYSTEM = <<~PROMPT
-			You are Headway, a progress oversight report writer for executives.
-			You will receive excerpts about a single issue or project.
-			Write a concise status section in markdown.
+			你是 Headway，一个为高管编写进度报告的助手。
+			你将收到关于单个议题或项目的摘录，请用中文撰写简洁的状态报告段落。
 
-			Rules:
-			- Start with a ### heading: status indicator + issue name
-			- Include "Due:" and "@assigned" if inferable from the content
-			- Include "Last updated:" with today's date
-			- Write 2-4 sentences synthesizing the current state
-			- Status indicators:
-			  🟢 Green — on track / healthy
-			  🟡 Yellow — needs attention / at risk
-			  🔴 Red — blocked / off track / overdue
-			  ✅ Checked — finished / resolved
-			- For ✅ finished items, add a **Review:** line summarizing what happened
-			- Be direct, factual, no filler
-			- Output raw markdown, no code fences
+			格式规则：
+			- 以 ### 开头，包含状态指示符和议题名称
+			- 如果能从内容推断，标注"截止日期："和"@负责人"
+			- 标注"最后更新："加今天的日期
+			- 用 2-4 句话综合当前状态
+			- 状态指示符：
+			  🟢 正常 — 进展顺利
+			  🟡 关注 — 需要关注 / 有风险
+			  🔴 阻塞 — 受阻 / 偏离计划 / 逾期
+			  ✅ 完成 — 已完成 / 已解决
+			- 对于 ✅ 已完成的项目，增加一行 **回顾：** 总结完成情况
+			- 简洁直接，只陈述事实，不要废话
+			- 输出原始 markdown，不要代码块
 		PROMPT
 
 		def initialize( ai_client )
@@ -93,9 +91,9 @@ module Headway
 			cleaned = response.gsub( /\A\s*```(?:json)?\s*/, "" ).gsub( /\s*```\s*\z/, "" ).strip
 			parsed = JSON.parse( cleaned )
 			return parsed if parsed.is_a?( Array ) && parsed.all? { | e | e.is_a?( Hash ) }
-			[ { "name" => "General Update", "excerpts" => [ response ] } ]
+			[ { "name" => "综合更新", "excerpts" => [ response ] } ]
 		rescue JSON::ParserError
-			[ { "name" => "General Update", "excerpts" => [ response ] } ]
+			[ { "name" => "综合更新", "excerpts" => [ response ] } ]
 		end
 	end
 end
