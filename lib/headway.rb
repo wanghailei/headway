@@ -11,6 +11,7 @@ end
 loader = Zeitwerk::Loader.for_gem
 loader.inflector.inflect(
 	"ai_client" => "AIClient",
-	"cli" => "CLI"
+	"cli" => "CLI",
+	"dingtalk" => "DingTalk"
 )
 loader.setup
