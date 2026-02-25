@@ -1,29 +1,11 @@
 #!/usr/bin/env ruby
-# CLI entry point for Headway. Dispatches to run or version commands.
-# Usage: bin/headway run | bin/headway version
+# CLI entry point for Headway. Loads Bundler, dotenv, and dispatches
+# to the Thor-based CLI.
 
 require "bundler/setup"
 require "dotenv/load"
-require_relative "../lib/headway"
 
-command = ARGV[0]
+$LOAD_PATH.unshift File.expand_path( "../lib", __dir__ )
+require "headway"
 
-case command
-when "run"
-	config = Headway::Config.new
-	runner = Headway::Runner.new( config )
-
-	puts "Headway v#{Headway::VERSION} — running..."
-	runner.run
-	puts "Done. Report published."
-
-when "version", "--version", "-v"
-	puts "Headway v#{Headway::VERSION}"
-
-else
-	puts "Headway v#{Headway::VERSION}"
-	puts ""
-	puts "Usage:"
-	puts "  bin/headway run       # Run one collect-synthesise-publish cycle"
-	puts "  bin/headway version   # Show version"
-end
+Headway::CLI.start( ARGV )

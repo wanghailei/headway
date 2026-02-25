@@ -9,5 +9,8 @@ module Headway
 end
 
 loader = Zeitwerk::Loader.for_gem
-loader.inflector.inflect( "ai_client" => "AIClient" )
+loader.inflector.inflect(
+	"ai_client" => "AIClient",
+	"cli" => "CLI"
+)
 loader.setup
