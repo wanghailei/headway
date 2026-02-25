@@ -6,10 +6,19 @@ ai:
 collectors:
   - type: local_files
     path: ./input
+  # - type: dingtalk_reports
+  #   template_name: "日报"
+  # - type: dingtalk_todos
+  #   operator_user_id: "your-user-id"
+  # - type: dingtalk_meetings
 
 publishers:
   - type: markdown_file
     path: ./output/report.md
+  # - type: dingtalk_doc
+  #   space_id: "your-space-id"
+  #   doc_id: "your-doc-id"
+  #   operator_user_id: "your-user-id"
 
 schedule:
   interval_hours: 2
