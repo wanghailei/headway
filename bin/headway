@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# bin/headway
+
+require_relative "../lib/headway"
+
+puts "Headway v#{Headway::VERSION}"

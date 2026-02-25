@@ -1,0 +1,15 @@
+# config/headway.yml
+ai:
+  base_url: https://api.openai.com/v1
+  model: gpt-4o
+
+collectors:
+  - type: local_files
+    path: ./input
+
+publishers:
+  - type: markdown_file
+    path: ./output/report.md
+
+schedule:
+  interval_hours: 2
