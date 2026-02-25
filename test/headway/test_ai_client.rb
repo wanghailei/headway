@@ -68,4 +68,14 @@ class TestAIClient < Minitest::Test
 		assert_equal "user", messages[1]["role"]
 		assert_equal "user prompt", messages[1]["content"]
 	end
+
+	def test_raises_on_missing_api_key
+		assert_raises ArgumentError do
+			Headway::AIClient.new(
+				base_url: "http://localhost:#{@port}/v1",
+				api_key: nil,
+				model: "gpt-4o"
+			)
+		end
+	end
 end

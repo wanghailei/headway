@@ -69,13 +69,16 @@ headway/
     └── headway               # Entry point: `bin/headway run`
 ```
 
-## Dependencies: stdlib only
+## Dependencies
 
-No third-party gems. Ruby's standard library covers everything Headway needs:
+Ruby stdlib, Rails-ecosystem gems, and well-known battle-tested gems.
+Tracks **Rails edge** (github/main).
 
-| Stdlib module | Purpose |
+### Stdlib
+
+| Module | Purpose |
 |---|---|
-| `net/http` | HTTP client — calls OpenAI API, DingTalk API |
+| `net/http` | HTTP client — calls AI APIs, DingTalk API |
 | `uri` | URL parsing |
 | `json` | JSON encode/decode for API requests and responses |
 | `erb` | Report template rendering |
@@ -83,6 +86,23 @@ No third-party gems. Ruby's standard library covers everything Headway needs:
 | `logger` | Logging |
 | `fileutils` | File and directory operations |
 | `openssl` | HTTPS/TLS (used automatically by `net/http`) |
+| `minitest` | Testing |
+
+### Rails-ecosystem gems
+
+| Gem | Via Rails | Useful for |
+|---|---|---|
+| `thor` | railties | CLI framework |
+| `zeitwerk` | railties | Autoloading |
+| `concurrent-ruby` | activesupport | Scheduled loop, thread-safe operations |
+| `nokogiri` | actiontext | Parsing DingTalk HTML responses |
+| `puma` | default Gemfile | Test server |
+| `rack` | actionpack | HTTP interface (if needed) |
+
+### Battle-tested gems (as needed)
+
+Famous, proven gems are allowed. Introduce only when they earn their place.
+Examples: `faraday`, `dotenv`, `dry-*`, `sidekiq`, etc.
 
 ## Configuration
 

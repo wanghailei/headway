@@ -1,16 +1,17 @@
-# OpenAI-compatible chat client. Sends prompts to LLM providers via
-# the standard chat completions endpoint using net/http. Works with
-# OpenAI, Qwen, DeepSeek, and any compatible API. Raises on HTTP
-# errors so failures are visible rather than silently swallowed.
+# Anthropic Messages API client. Sends prompts to Claude models via
+# the /v1/messages endpoint using net/http. Shares the same chat
+# interface as AIClient so Runner can use either interchangeably.
 
 require "net/http"
 require "uri"
 require "json"
 
 module Headway
-	class AIClient
+	class AnthropicClient
 		# Raised when the API returns a non-2xx response.
 		class APIError < StandardError; end
+
+		ANTHROPIC_VERSION = "2023-06-01"
 
 		def initialize( base_url:, api_key:, model: )
 			raise ArgumentError, "api_key is required (set HEADWAY_AI_API_KEY)" unless api_key
@@ -19,25 +20,28 @@ module Headway
 			@model = model
 		end
 
+		# Same interface as AIClient#chat — accepts a prompt and optional
+		# system message, returns the response text.
 		def chat( prompt, system: nil )
-			uri = URI( "#{@base_url}/chat/completions" )
+			uri = URI( "#{@base_url}/v1/messages" )
 
-			messages = []
-			messages << { role: "system", content: system } if system
-			messages << { role: "user", content: prompt }
-
-			body = { model: @model, messages: messages }
+			body = {
+				model: @model,
+				max_tokens: 4096,
+				messages: [ { role: "user", content: prompt } ]
+			}
+			body[:system] = system if system
 
 			response = post( uri, body )
 			data = JSON.parse( response.body )
 
-			# Surface API errors clearly instead of returning nil.
 			unless response.is_a?( Net::HTTPSuccess )
 				error_msg = data.dig( "error", "message" ) || response.body
-				raise APIError, "AI API returned #{response.code}: #{error_msg}"
+				raise APIError, "Anthropic API returned #{response.code}: #{error_msg}"
 			end
 
-			data.dig( "choices", 0, "message", "content" )
+			# Anthropic returns content as an array of blocks.
+			data.dig( "content", 0, "text" )
 		end
 
 	private
@@ -48,7 +52,8 @@ module Headway
 
 			request = Net::HTTP::Post.new( uri.path )
 			request["Content-Type"] = "application/json"
-			request["Authorization"] = "Bearer #{@api_key}"
+			request["x-api-key"] = @api_key
+			request["anthropic-version"] = ANTHROPIC_VERSION
 			request.body = JSON.generate( body )
 
 			http.request( request )

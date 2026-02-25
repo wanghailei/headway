@@ -4,6 +4,7 @@
 
 require_relative "config"
 require_relative "ai_client"
+require_relative "anthropic_client"
 require_relative "collectors/local_files"
 require_relative "synthesizer"
 require_relative "report_renderer"
@@ -58,11 +59,20 @@ module Headway
 		end
 
 		def build_ai_client
-			AIClient.new(
-				base_url: @config.ai_base_url,
-				api_key: @config.ai_api_key,
-				model: @config.ai_model
-			)
+			case @config.ai_provider
+			when "anthropic"
+				AnthropicClient.new(
+					base_url: @config.ai_base_url,
+					api_key: @config.ai_api_key,
+					model: @config.ai_model
+				)
+			else
+				AIClient.new(
+					base_url: @config.ai_base_url,
+					api_key: @config.ai_api_key,
+					model: @config.ai_model
+				)
+			end
 		end
 	end
 end
