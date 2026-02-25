@@ -31,12 +31,84 @@ class TestConfig < Minitest::Test
 		assert_equal "gpt-4o", config.ai_model
 	end
 
-	def test_ai_api_key_from_env
-		ENV["HEADWAY_AI_API_KEY"] = "test-key-123"
+	def test_ai_api_key_from_headway_env
+		ENV["HEADWAY_AI_API_KEY"] = "headway-key"
+		ENV["OPENAI_API_KEY"] = "openai-key"
 		config = Headway::Config.new( @config_path )
-		assert_equal "test-key-123", config.ai_api_key
+		assert_equal "headway-key", config.ai_api_key
 	ensure
 		ENV.delete( "HEADWAY_AI_API_KEY" )
+		ENV.delete( "OPENAI_API_KEY" )
+	end
+
+	def test_ai_api_key_falls_back_to_openai_env
+		ENV.delete( "HEADWAY_AI_API_KEY" )
+		ENV["OPENAI_API_KEY"] = "openai-key"
+		config = Headway::Config.new( @config_path )
+		assert_equal "openai-key", config.ai_api_key
+	ensure
+		ENV.delete( "OPENAI_API_KEY" )
+	end
+
+	def test_ai_api_key_falls_back_to_codex_auth
+		ENV.delete( "HEADWAY_AI_API_KEY" )
+		ENV.delete( "OPENAI_API_KEY" )
+
+		# Write a fake Codex auth file
+		codex_dir = File.join( @dir, ".codex" )
+		FileUtils.mkdir_p( codex_dir )
+		auth_path = File.join( codex_dir, "auth.json" )
+		File.write( auth_path, JSON.generate( {
+			"tokens" => { "access_token" => "codex-oauth-token" }
+		} ) )
+
+		# Point Config at our fake auth path
+		original = Headway::Config::CODEX_AUTH_PATH
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, auth_path )
+
+		config = Headway::Config.new( @config_path )
+		assert_equal "codex-oauth-token", config.ai_api_key
+	ensure
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, original )
+	end
+
+	def test_ai_api_key_nil_when_no_source_available
+		ENV.delete( "HEADWAY_AI_API_KEY" )
+		ENV.delete( "OPENAI_API_KEY" )
+
+		# Point Config at a nonexistent file
+		original = Headway::Config::CODEX_AUTH_PATH
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, File.join( @dir, "nope.json" ) )
+
+		config = Headway::Config.new( @config_path )
+		assert_nil config.ai_api_key
+	ensure
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, original )
+	end
+
+	def test_ai_api_key_survives_corrupt_codex_auth
+		ENV.delete( "HEADWAY_AI_API_KEY" )
+		ENV.delete( "OPENAI_API_KEY" )
+
+		# Write corrupt JSON
+		codex_dir = File.join( @dir, ".codex" )
+		FileUtils.mkdir_p( codex_dir )
+		auth_path = File.join( codex_dir, "auth.json" )
+		File.write( auth_path, "NOT-JSON{{{" )
+
+		original = Headway::Config::CODEX_AUTH_PATH
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, auth_path )
+
+		config = Headway::Config.new( @config_path )
+		assert_nil config.ai_api_key
+	ensure
+		Headway::Config.send( :remove_const, :CODEX_AUTH_PATH )
+		Headway::Config.const_set( :CODEX_AUTH_PATH, original )
 	end
 
 	def test_env_overrides_base_url
