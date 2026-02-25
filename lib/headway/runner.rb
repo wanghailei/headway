@@ -2,14 +2,6 @@
 # collect items from configured sources, synthesize via AI, render
 # the report template, and publish to configured destinations.
 
-require_relative "config"
-require_relative "ai_client"
-require_relative "anthropic_client"
-require_relative "collectors/local_files"
-require_relative "synthesizer"
-require_relative "report_renderer"
-require_relative "publishers/markdown_file"
-
 module Headway
 	class Runner
 		def initialize( config, ai_client: nil, template_path: "templates/report.md.erb" )

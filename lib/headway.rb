@@ -1,9 +1,13 @@
-# Main entry point for the Headway module. Defines the version constant
-# and loads core dependencies.
+# Main entry point for the Headway module. Sets up Zeitwerk autoloading
+# so all classes under lib/headway/ are loaded on demand — no manual
+# require_relative chains needed.
 
-require_relative "headway/config"
-require_relative "headway/runner"
+require "zeitwerk"
 
 module Headway
 	VERSION = "0.1.0"
 end
+
+loader = Zeitwerk::Loader.for_gem
+loader.inflector.inflect( "ai_client" => "AIClient" )
+loader.setup
