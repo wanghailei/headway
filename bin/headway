@@ -1,7 +1,27 @@
 #!/usr/bin/env ruby
-# CLI entry point for Headway. Prints version on execution.
-# Extended in Task 9 with run and version commands.
+# CLI entry point for Headway. Dispatches to run or version commands.
+# Usage: bin/headway run | bin/headway version
 
 require_relative "../lib/headway"
 
-puts "Headway v#{Headway::VERSION}"
+command = ARGV[0]
+
+case command
+when "run"
+	config = Headway::Config.new
+	runner = Headway::Runner.new( config )
+
+	puts "Headway v#{Headway::VERSION} — running..."
+	runner.run
+	puts "Done. Report published."
+
+when "version", "--version", "-v"
+	puts "Headway v#{Headway::VERSION}"
+
+else
+	puts "Headway v#{Headway::VERSION}"
+	puts ""
+	puts "Usage:"
+	puts "  bin/headway run       # Run one collect-synthesise-publish cycle"
+	puts "  bin/headway version   # Show version"
+end
