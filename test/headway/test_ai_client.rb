@@ -1,78 +1,104 @@
 # Tests for Headway::AIClient. Verifies prompt sending, response parsing,
-# header construction, and system/user message assembly against a local
-# WEBrick server that mimics the OpenAI chat completions endpoint.
+# header construction, and system/user message assembly using Faraday's
+# test adapter to stub HTTP interactions.
 
 require "test_helper"
 require "headway/ai_client"
-require "webrick"
 require "json"
 
 class TestAIClient < Minitest::Test
-	def setup
-		@server = WEBrick::HTTPServer.new(
-			Port: 0,
-			Logger: WEBrick::Log.new( "/dev/null" ),
-			AccessLog: []
-		)
-		@port = @server.config[:Port]
-
-		@server.mount_proc "/v1/chat/completions" do | req, res |
-			body = JSON.parse( req.body )
-			@last_request = body
-			res.content_type = "application/json"
-			res.body = JSON.generate( {
-				choices: [ { message: { content: "AI response here" } } ]
-			} )
-		end
-
-		@thread = Thread.new do
-			@server.start
-		end
+	def build_stubs( &block )
+		stubs = Faraday::Adapter::Test::Stubs.new
+		stubs.post( "/v1/chat/completions", &block )
+		stubs
 	end
 
-	def teardown
-		@server.shutdown
-		@thread.join
+	def build_connection( stubs )
+		Faraday.new do | f |
+			f.request :json
+			f.response :json
+			f.adapter :test, stubs
+		end
 	end
 
 	def test_sends_prompt_and_returns_content
+		stubs = build_stubs do | env |
+			[
+				200,
+				{ "Content-Type" => "application/json" },
+				JSON.generate( {
+					choices: [ { message: { content: "AI response here" } } ]
+				} )
+			]
+		end
+		conn = build_connection( stubs )
+
 		client = Headway::AIClient.new(
-			base_url: "http://localhost:#{@port}/v1",
+			base_url: "http://localhost",
 			api_key: "test-key",
 			model: "gpt-4o"
 		)
-		result = client.chat( "Summarize this: hello world" )
+		result = client.chat( "Summarize this: hello world", connection: conn )
 		assert_equal "AI response here", result
+		stubs.verify_stubbed_calls
 	end
 
 	def test_sends_correct_headers
+		last_request = nil
+		stubs = build_stubs do | env |
+			last_request = JSON.parse( env.body )
+			[
+				200,
+				{ "Content-Type" => "application/json" },
+				JSON.generate( {
+					choices: [ { message: { content: "ok" } } ]
+				} )
+			]
+		end
+		conn = build_connection( stubs )
+
 		client = Headway::AIClient.new(
-			base_url: "http://localhost:#{@port}/v1",
+			base_url: "http://localhost",
 			api_key: "sk-test-abc",
 			model: "gpt-4o"
 		)
-		client.chat( "test" )
-		assert_equal "gpt-4o", @last_request["model"]
+		client.chat( "test", connection: conn )
+		assert_equal "gpt-4o", last_request["model"]
+		stubs.verify_stubbed_calls
 	end
 
 	def test_sends_system_and_user_messages
+		last_request = nil
+		stubs = build_stubs do | env |
+			last_request = JSON.parse( env.body )
+			[
+				200,
+				{ "Content-Type" => "application/json" },
+				JSON.generate( {
+					choices: [ { message: { content: "ok" } } ]
+				} )
+			]
+		end
+		conn = build_connection( stubs )
+
 		client = Headway::AIClient.new(
-			base_url: "http://localhost:#{@port}/v1",
+			base_url: "http://localhost",
 			api_key: "test-key",
 			model: "gpt-4o"
 		)
-		client.chat( "user prompt", system: "system prompt" )
-		messages = @last_request["messages"]
+		client.chat( "user prompt", system: "system prompt", connection: conn )
+		messages = last_request["messages"]
 		assert_equal "system", messages[0]["role"]
 		assert_equal "system prompt", messages[0]["content"]
 		assert_equal "user", messages[1]["role"]
 		assert_equal "user prompt", messages[1]["content"]
+		stubs.verify_stubbed_calls
 	end
 
 	def test_raises_on_missing_api_key
 		assert_raises ArgumentError do
 			Headway::AIClient.new(
-				base_url: "http://localhost:#{@port}/v1",
+				base_url: "http://localhost",
 				api_key: nil,
 				model: "gpt-4o"
 			)

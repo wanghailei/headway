@@ -1,10 +1,8 @@
 # Anthropic Messages API client. Sends prompts to Claude models via
-# the /v1/messages endpoint using net/http. Shares the same chat
+# the /v1/messages endpoint using Faraday. Shares the same chat
 # interface as AIClient so Runner can use either interchangeably.
 
-require "net/http"
-require "uri"
-require "json"
+require "faraday"
 
 module Headway
 	class AnthropicClient
@@ -22,8 +20,8 @@ module Headway
 
 		# Same interface as AIClient#chat — accepts a prompt and optional
 		# system message, returns the response text.
-		def chat( prompt, system: nil )
-			uri = URI( "#{@base_url}/v1/messages" )
+		def chat( prompt, system: nil, connection: nil )
+			conn = connection || build_connection
 
 			body = {
 				model: @model,
@@ -32,31 +30,27 @@ module Headway
 			}
 			body[:system] = system if system
 
-			response = post( uri, body )
-			data = JSON.parse( response.body )
+			response = conn.post( "/v1/messages", body )
 
-			unless response.is_a?( Net::HTTPSuccess )
-				error_msg = data.dig( "error", "message" ) || response.body
-				raise APIError, "Anthropic API returned #{response.code}: #{error_msg}"
+			unless response.success?
+				error_msg = response.body.dig( "error", "message" ) || response.body.to_s
+				raise APIError, "Anthropic API returned #{response.status}: #{error_msg}"
 			end
 
 			# Anthropic returns content as an array of blocks.
-			data.dig( "content", 0, "text" )
+			response.body.dig( "content", 0, "text" )
 		end
 
 	private
 
-		def post( uri, body )
-			http = Net::HTTP.new( uri.host, uri.port )
-			http.use_ssl = ( uri.scheme == "https" )
-
-			request = Net::HTTP::Post.new( uri.path )
-			request["Content-Type"] = "application/json"
-			request["x-api-key"] = @api_key
-			request["anthropic-version"] = ANTHROPIC_VERSION
-			request.body = JSON.generate( body )
-
-			http.request( request )
+		def build_connection
+			Faraday.new( url: @base_url ) do | f |
+				f.request :json
+				f.response :json
+				f.headers["x-api-key"] = @api_key
+				f.headers["anthropic-version"] = ANTHROPIC_VERSION
+				f.adapter Faraday.default_adapter
+			end
 		end
 	end
 end

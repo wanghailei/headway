@@ -1,6 +1,7 @@
 # Shared test configuration for Headway. Sets up minitest and adds
 # lib/ to the load path.
 
+require "bundler/setup"
 require "minitest/autorun"
 require "fileutils"
 require "tmpdir"

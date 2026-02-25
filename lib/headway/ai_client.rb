@@ -1,11 +1,9 @@
 # OpenAI-compatible chat client. Sends prompts to LLM providers via
-# the standard chat completions endpoint using net/http. Works with
+# the standard chat completions endpoint using Faraday. Works with
 # OpenAI, Qwen, DeepSeek, and any compatible API. Raises on HTTP
 # errors so failures are visible rather than silently swallowed.
 
-require "net/http"
-require "uri"
-require "json"
+require "faraday"
 
 module Headway
 	class AIClient
@@ -19,8 +17,8 @@ module Headway
 			@model = model
 		end
 
-		def chat( prompt, system: nil )
-			uri = URI( "#{@base_url}/chat/completions" )
+		def chat( prompt, system: nil, connection: nil )
+			conn = connection || build_connection
 
 			messages = []
 			messages << { role: "system", content: system } if system
@@ -28,30 +26,25 @@ module Headway
 
 			body = { model: @model, messages: messages }
 
-			response = post( uri, body )
-			data = JSON.parse( response.body )
+			response = conn.post( "/v1/chat/completions", body )
 
-			# Surface API errors clearly instead of returning nil.
-			unless response.is_a?( Net::HTTPSuccess )
-				error_msg = data.dig( "error", "message" ) || response.body
-				raise APIError, "AI API returned #{response.code}: #{error_msg}"
+			unless response.success?
+				error_msg = response.body.dig( "error", "message" ) || response.body.to_s
+				raise APIError, "AI API returned #{response.status}: #{error_msg}"
 			end
 
-			data.dig( "choices", 0, "message", "content" )
+			response.body.dig( "choices", 0, "message", "content" )
 		end
 
 	private
 
-		def post( uri, body )
-			http = Net::HTTP.new( uri.host, uri.port )
-			http.use_ssl = ( uri.scheme == "https" )
-
-			request = Net::HTTP::Post.new( uri.path )
-			request["Content-Type"] = "application/json"
-			request["Authorization"] = "Bearer #{@api_key}"
-			request.body = JSON.generate( body )
-
-			http.request( request )
+		def build_connection
+			Faraday.new( url: @base_url ) do | f |
+				f.request :json
+				f.response :json
+				f.headers["Authorization"] = "Bearer #{@api_key}"
+				f.adapter Faraday.default_adapter
+			end
 		end
 	end
 end
