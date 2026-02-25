@@ -60,9 +60,60 @@ module Headway
 				result
 			end
 
+		# Enumerate all employees across all departments. Returns an array
+		# of hashes: { userid:, name:, unionid:, dept_id: }.
+		# Requires qyapi_get_department_member permission.
+		def list_employees( connection: nil )
+			dept_ids = list_all_department_ids( connection: connection )
+			employees = {}
+
+			dept_ids.each do | dept_id |
+				cursor = 0
+				loop do
+					result = legacy_post(
+						"/topapi/v2/user/list",
+						body: { dept_id: dept_id, cursor: cursor, size: 100 },
+						connection: connection
+					)
+					users = result.dig( "result", "list" ) || []
+					users.each do | u |
+						employees[u["userid"]] ||= {
+							userid: u["userid"],
+							name: u["name"],
+							unionid: u["unionid"],
+							dept_id: dept_id
+						}
+					end
+					break unless result.dig( "result", "has_more" )
+					cursor = result.dig( "result", "next_cursor" ) || 0
+				end
+			end
+
+			employees.values
+		end
+
 		private
 
-			def ensure_token( connection: nil )
+			def list_all_department_ids( connection: nil )
+			ids = []
+			queue = [ 1 ]
+
+			while ( parent = queue.shift )
+				result = legacy_post(
+					"/topapi/v2/department/listsub",
+					body: { dept_id: parent },
+					connection: connection
+				)
+				( result["result"] || [] ).each do | dept |
+					ids << dept["dept_id"]
+					queue << dept["dept_id"]
+				end
+			end
+
+			ids
+		end
+
+		def ensure_token( connection: nil )
 				return if @token && @token_expires_at && Time.now < @token_expires_at
 				fetch_token( connection: connection )
 			end

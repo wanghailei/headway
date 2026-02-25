@@ -1,32 +1,32 @@
-# DingTalk Todos (待办) collector. Reads pending tasks from the
-# DingTalk Todo API. Tasks are sorted by due date (earliest first)
-# so the most urgent items appear at the top of the briefing.
+# DingTalk Todos (待办) collector. Reads pending tasks from all
+# employees via the DingTalk Todo API. Iterates over every employee
+# in the organisation, queries their pending todos, and groups them
+# into a single "Tasks" section sorted by due date (earliest first).
 
 module Headway
 	module Collectors
 		class DingtalkTodos
 			PRIORITY_LABELS = {
-				10 => "Urgent",
-				20 => "High",
-				30 => "Medium",
-				40 => "Low"
+				10 => "紧急",
+				20 => "高",
+				30 => "中",
+				40 => "低"
 			}.freeze
 
-			def initialize( client:, operator_user_id: )
+			def initialize( client: )
 				@client = client
-				@operator_user_id = operator_user_id
 			end
 
 			def collect
-				tasks = fetch_tasks
+				tasks = fetch_all_tasks
 				return [] if tasks.empty?
 
 				files = tasks
 					.sort_by do | task |
-						task["dueTime"] || Float::INFINITY
+						task[:due] || Float::INFINITY
 					end
 					.map do | task |
-						format_task( task )
+						task[:formatted]
 					end
 
 				[ { name: "Tasks", files: files } ]
@@ -34,21 +34,42 @@ module Headway
 
 		private
 
-			def fetch_tasks
-				result = @client.post(
-					"/v1.0/todo/users/#{@operator_user_id}/tasks/query",
-					body: { isDone: false }
-				)
-				result["todoCards"] || []
+			def fetch_all_tasks
+				employees = @client.list_employees
+				all_tasks = []
+
+				employees.each do | emp |
+					next unless emp[:unionid]
+
+					begin
+						result = @client.post(
+							"/v1.0/todo/users/#{emp[:unionid]}/org/tasks/query",
+							body: { isDone: false }
+						)
+						cards = result["todoCards"] || []
+						cards.each do | task |
+							all_tasks << {
+								due: task["dueTime"],
+								formatted: format_task( task, emp[:name] )
+							}
+						end
+					rescue StandardError
+						# Skip employees whose todos can't be read
+						next
+					end
+				end
+
+				all_tasks
 			end
 
-			def format_task( task )
+			def format_task( task, owner_name )
 				lines = []
 				lines << "# #{task["subject"]}"
 				lines << ""
-				lines << "- **Status**: #{task["isDone"] ? "Done" : "Pending"}"
-				lines << "- **Due**: #{format_date( task["dueTime"] )}" if task["dueTime"]
-				lines << "- **Priority**: #{priority_label( task["priority"] )}"
+				lines << "- **负责人**: #{owner_name}"
+				lines << "- **状态**: #{task["isDone"] ? "已完成" : "待办"}"
+				lines << "- **截止**: #{format_date( task["dueTime"] )}" if task["dueTime"]
+				lines << "- **优先级**: #{priority_label( task["priority"] )}"
 				lines << ""
 
 				if task["description"] && !task["description"].empty?
@@ -60,7 +81,7 @@ module Headway
 			end
 
 			def priority_label( level )
-				PRIORITY_LABELS[level] || "Unknown"
+				PRIORITY_LABELS[level] || "未知"
 			end
 
 			def format_date( ms )

@@ -1,7 +1,7 @@
 # Tests for Headway::Synthesizer two-stage pipeline. Stage 1 extracts
 # issues from collected items. Stage 2 synthesizes a status section for
-# each issue. Uses FakeAIClient from test_helper to simulate sequential
-# AI responses (extraction JSON → synthesis markdown).
+# each issue. Includes tests for iterative reporting with previous
+# report context. Uses FakeAIClient from test_helper.
 
 require "test_helper"
 require "json"
@@ -180,5 +180,73 @@ class TestSynthesizer < Minitest::Test
 		assert_includes extraction_prompt, "Reports"
 		assert_includes extraction_prompt, "Design review done."
 		assert_includes extraction_prompt, "Finished API for Project X."
+	end
+
+	# --- Iterative reporting tests ---
+
+	def test_previous_report_included_in_extraction_prompt
+		items = [ { name: "X", files: [ { filename: "a.md", content: "new update" } ] } ]
+		previous = "### 🟢 Old Issue\n最后更新：2026-02-20\nOn track."
+
+		extraction_json = JSON.generate( [ { name: "Old Issue", excerpts: [ "new update" ] } ] )
+		fake = FakeAIClient.new( extraction_json, "### 🟢 Old Issue\nUpdated." )
+		Headway::Synthesizer.new( fake, previous_report: previous ).synthesize( items )
+
+		extraction_prompt = fake.calls[0][:prompt]
+		assert_includes extraction_prompt, "上期进度报告"
+		assert_includes extraction_prompt, "Old Issue"
+	end
+
+	def test_previous_report_uses_iterative_extraction_system
+		items = [ { name: "X", files: [ { filename: "a.md", content: "b" } ] } ]
+		previous = "### 🟢 Test\nOld status."
+
+		extraction_json = JSON.generate( [ { name: "Test", excerpts: [ "b" ] } ] )
+		fake = FakeAIClient.new( extraction_json, "ok" )
+		Headway::Synthesizer.new( fake, previous_report: previous ).synthesize( items )
+
+		extract_system = fake.calls[0][:system]
+		assert_includes extract_system, "上期报告"
+		assert_includes extract_system, "沿用"
+	end
+
+	def test_previous_report_section_passed_to_synthesis
+		items = [ { name: "X", files: [ { filename: "a.md", content: "progress" } ] } ]
+		previous = "### 🟡 Design Review\n最后更新：2026-02-20\n设计审查进行中。"
+
+		extraction_json = JSON.generate( [ { name: "Design Review", excerpts: [ "progress" ] } ] )
+		fake = FakeAIClient.new( extraction_json, "### 🟢 Design Review\nDone." )
+		Headway::Synthesizer.new( fake, previous_report: previous ).synthesize( items )
+
+		synth_prompt = fake.calls[1][:prompt]
+		assert_includes synth_prompt, "上期状态"
+		assert_includes synth_prompt, "设计审查进行中"
+	end
+
+	def test_previous_report_uses_iterative_synthesis_system
+		items = [ { name: "X", files: [ { filename: "a.md", content: "b" } ] } ]
+		previous = "### 🟢 Test\nOld."
+
+		extraction_json = JSON.generate( [ { name: "Test", excerpts: [ "b" ] } ] )
+		fake = FakeAIClient.new( extraction_json, "ok" )
+		Headway::Synthesizer.new( fake, previous_report: previous ).synthesize( items )
+
+		synth_system = fake.calls[1][:system]
+		assert_includes synth_system, "上期"
+		assert_includes synth_system, "变化"
+	end
+
+	def test_without_previous_report_uses_standard_prompts
+		items = [ { name: "X", files: [ { filename: "a.md", content: "b" } ] } ]
+
+		extraction_json = JSON.generate( [ { name: "X", excerpts: [ "b" ] } ] )
+		fake = FakeAIClient.new( extraction_json, "ok" )
+		Headway::Synthesizer.new( fake ).synthesize( items )
+
+		extract_system = fake.calls[0][:system]
+		refute_includes extract_system, "上期报告"
+
+		synth_prompt = fake.calls[1][:prompt]
+		refute_includes synth_prompt, "上期状态"
 	end
 end

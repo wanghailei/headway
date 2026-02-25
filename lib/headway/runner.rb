@@ -33,8 +33,12 @@ module Headway
 					).collect
 				when "dingtalk_todos"
 					items.concat Collectors::DingtalkTodos.new(
+						client: dingtalk_client
+					).collect
+				when "dingtalk_meetings"
+					items.concat Collectors::DingtalkMeetings.new(
 						client: dingtalk_client,
-						operator_user_id: c["operator_user_id"]
+						interval_hours: @config.interval_hours
 					).collect
 				end
 			end
@@ -42,7 +46,22 @@ module Headway
 		end
 
 		def synthesize( items )
-			Synthesizer.new( @ai_client ).synthesize( items )
+			previous = find_previous_report
+			Synthesizer.new( @ai_client, previous_report: previous ).synthesize( items )
+		end
+
+		def find_previous_report
+			output_dir = @config.publishers
+				.select { | p | p["type"] == "markdown_file" }
+				.map { | p | p["path"] }
+				.first
+
+			return nil unless output_dir && File.directory?( output_dir )
+
+			reports = Dir.glob( File.join( output_dir, "RP.*.md" ) ).sort
+			return nil if reports.empty?
+
+			File.read( reports.last )
 		end
 
 		def render( body )

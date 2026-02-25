@@ -5,18 +5,14 @@ ai:
 
 collectors:
   - type: dingtalk_reports
-  # - type: local_files
-  #   path: ./input
-  # - type: dingtalk_todos
-  #   operator_user_id: "your-user-id"
+  - type: dingtalk_todos
+  - type: dingtalk_meetings
+  - type: local_files
+    path: ./issues
 
 publishers:
   - type: markdown_file
     path: ./output
-  # - type: dingtalk_doc
-  #   space_id: "your-space-id"
-  #   doc_id: "your-doc-id"
-  #   operator_user_id: "your-user-id"
 
 schedule:
-  interval_hours: 1344
+  interval_hours: 168

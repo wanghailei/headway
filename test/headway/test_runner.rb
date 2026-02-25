@@ -65,4 +65,27 @@ class TestRunner < Minitest::Test
 		assert_includes content, "Headway Report"
 		assert_includes content, "Project Alpha"
 	end
+
+	def test_iterative_reporting_uses_previous_report
+		# Create a previous report in output
+		FileUtils.mkdir_p( @output_dir )
+		File.write(
+			File.join( @output_dir, "RP.26.02.24.10.md" ),
+			"# Previous\n\n### 🟡 Project Alpha\n最后更新：2026-02-24\n进行中。"
+		)
+
+		extraction_json = JSON.generate( [
+			{ name: "Project Alpha", excerpts: [ "Sprint 4 on track." ] }
+		] )
+		fake_ai = FakeAIClient.new( extraction_json, "### 🟢 Project Alpha\nDone." )
+		config = Headway::Config.new( @config_path )
+
+		runner = Headway::Runner.new( config, ai_client: fake_ai, template_path: @template_path )
+		runner.run
+
+		# Extraction prompt should include previous report
+		extraction_prompt = fake_ai.calls[0][:prompt]
+		assert_includes extraction_prompt, "上期进度报告"
+		assert_includes extraction_prompt, "Project Alpha"
+	end
 end
