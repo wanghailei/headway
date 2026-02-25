@@ -25,6 +25,22 @@ module Headway
 				case c["type"]
 				when "local_files"
 					items.concat Collectors::LocalFiles.new( c["path"] ).collect
+				when "dingtalk_reports"
+					items.concat Collectors::DingtalkReports.new(
+						client: dingtalk_client,
+						interval_hours: @config.interval_hours,
+						template_name: c["template_name"]
+					).collect
+				when "dingtalk_todos"
+					items.concat Collectors::DingtalkTodos.new(
+						client: dingtalk_client,
+						operator_user_id: c["operator_user_id"]
+					).collect
+				when "dingtalk_meetings"
+					items.concat Collectors::DingtalkMeetings.new(
+						client: dingtalk_client,
+						interval_hours: @config.interval_hours
+					).collect
 				end
 			end
 			items
@@ -46,8 +62,22 @@ module Headway
 				case p["type"]
 				when "markdown_file"
 					Publishers::MarkdownFile.new( p["path"] ).publish( report )
+				when "dingtalk_doc"
+					Publishers::DingtalkDoc.new(
+						client: dingtalk_client,
+						space_id: p["space_id"],
+						doc_id: p["doc_id"],
+						operator_user_id: p["operator_user_id"]
+					).publish( report )
 				end
 			end
+		end
+
+		def dingtalk_client
+			@dingtalk_client ||= DingTalk::Client.new(
+				app_key: @config.dingtalk_app_key,
+				app_secret: @config.dingtalk_app_secret
+			)
 		end
 
 		def build_ai_client
