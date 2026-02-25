@@ -1,9 +1,9 @@
 # Tests for Headway::Runner. Verifies the full orchestration pipeline:
 # collect items, synthesize via AI, render with template, and publish
-# to output — using a fake AI client for isolation.
+# to output — using FakeAIClient from test_helper for isolation.
 
 require "test_helper"
-require "headway/runner"
+require "json"
 
 class TestRunner < Minitest::Test
 	def setup
@@ -48,7 +48,12 @@ class TestRunner < Minitest::Test
 	end
 
 	def test_run_produces_output_file
-		fake_ai = FakeAIClient.new( "### Project Alpha\nOn track." )
+		# Two-stage: extraction returns JSON with one issue,
+		# synthesis returns markdown status section.
+		extraction_json = JSON.generate( [
+			{ name: "Project Alpha", excerpts: [ "Sprint 4 on track. Backend migration done." ] }
+		] )
+		fake_ai = FakeAIClient.new( extraction_json, "### 🟢 Project Alpha\nOn track." )
 		config = Headway::Config.new( @config_path )
 
 		runner = Headway::Runner.new( config, ai_client: fake_ai, template_path: @template_path )
@@ -58,23 +63,5 @@ class TestRunner < Minitest::Test
 		content = File.read( @output_path )
 		assert_includes content, "Headway Report"
 		assert_includes content, "Project Alpha"
-	end
-end
-
-# Reuse fake client — guard against double-definition when running
-# multiple test files together (test_synthesizer.rb defines the same class).
-unless defined?( FakeAIClient )
-	class FakeAIClient
-		attr_reader :last_prompt, :last_system
-
-		def initialize( response )
-			@response = response
-		end
-
-		def chat( prompt, system: nil )
-			@last_prompt = prompt
-			@last_system = system
-			@response
-		end
 	end
 end
