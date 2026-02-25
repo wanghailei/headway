@@ -36,11 +36,6 @@ module Headway
 						client: dingtalk_client,
 						operator_user_id: c["operator_user_id"]
 					).collect
-				when "dingtalk_meetings"
-					items.concat Collectors::DingtalkMeetings.new(
-						client: dingtalk_client,
-						interval_hours: @config.interval_hours
-					).collect
 				end
 			end
 			items
