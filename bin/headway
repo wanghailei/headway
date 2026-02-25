@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
-# bin/headway
+# CLI entry point for Headway. Prints version on execution.
+# Extended in Task 9 with run and version commands.
 
 require_relative "../lib/headway"
 
