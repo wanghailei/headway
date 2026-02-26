@@ -18,9 +18,23 @@ module Pulse
 		desc "watch", "Run the pipeline on a recurring schedule"
 		def watch
 			config = Config.new
-			runner = Runner.new( config )
+			mention_queue = Thread::Queue.new
+			runner = Runner.new( config, mention_queue: mention_queue )
+
+			stream = nil
+			if config.dingtalk_bot_enabled?
+				stream = DingTalk::Stream.new(
+					app_key: config.dingtalk_app_key,
+					app_secret: config.dingtalk_app_secret,
+					on_message: ->( msg ) { mention_queue << msg }
+				)
+				stream.start
+				puts "Pulse v#{VERSION} — bot stream started"
+			end
+
 			scheduler = Scheduler.new( runner, interval_hours: config.interval_hours )
 
+			at_exit { stream&.stop }
 			puts "Pulse v#{VERSION} — watching (every #{config.interval_hours}h, Ctrl+C to stop)"
 			scheduler.start
 		end

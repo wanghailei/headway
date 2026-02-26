@@ -4,10 +4,11 @@
 
 module Pulse
 	class Runner
-		def initialize( config, ai_client: nil, template_path: "templates/report.md.erb" )
+		def initialize( config, ai_client: nil, template_path: "templates/report.md.erb", mention_queue: nil )
 			@config = config
 			@ai_client = ai_client || build_ai_client
 			@template_path = template_path
+			@mention_queue = mention_queue
 		end
 
 		def run
@@ -40,6 +41,12 @@ module Pulse
 						client: dingtalk_client,
 						interval_hours: @config.interval_hours
 					).collect
+				when "dingtalk_mentions"
+					if @mention_queue
+						items.concat Collectors::DingtalkMentions.new(
+							queue: @mention_queue
+						).collect
+					end
 				end
 			end
 			items
@@ -83,6 +90,12 @@ module Pulse
 						doc_id: p["doc_id"],
 						operator_user_id: p["operator_user_id"]
 					).publish( report )
+				when "dingtalk_bot_notify"
+					Publishers::DingtalkBotNotify.new(
+						messenger: bot_messenger,
+						user_ids: @config.dingtalk_bot_notify_user_ids,
+						report_url: p["report_url"]
+					).publish( report )
 				end
 			end
 		end
@@ -91,6 +104,13 @@ module Pulse
 			@dingtalk_client ||= DingTalk::Client.new(
 				app_key: @config.dingtalk_app_key,
 				app_secret: @config.dingtalk_app_secret
+			)
+		end
+
+		def bot_messenger
+			@bot_messenger ||= DingTalk::BotMessenger.new(
+				client: dingtalk_client,
+				robot_code: @config.dingtalk_robot_code
 			)
 		end
 

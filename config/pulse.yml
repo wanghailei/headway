@@ -7,6 +7,7 @@ collectors:
   - type: dingtalk_reports
   - type: dingtalk_todos
   # - type: dingtalk_meetings  # needs VideoConference.Conference.Read permission
+  - type: dingtalk_mentions
   - type: local_files
     path: ./issues
   - type: local_files
@@ -15,6 +16,12 @@ collectors:
 publishers:
   - type: markdown_file
     path: ./output
+  - type: dingtalk_bot_notify
+    report_url: ""
 
 schedule:
   interval_hours: 168
+
+dingtalk_bot:
+  enabled: false
+  notify_user_ids: []
