@@ -61,7 +61,7 @@ module Headway
 			reports = Dir.glob( File.join( output_dir, "RP.*.md" ) ).sort
 			return nil if reports.empty?
 
-			File.read( reports.last )
+			File.read( reports.last, encoding: "UTF-8" )
 		end
 
 		def render( body )

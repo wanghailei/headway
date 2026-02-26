@@ -7,7 +7,7 @@ require "erb"
 module Headway
 	class ReportRenderer
 		def initialize( template_path = "templates/report.md.erb" )
-			@template = File.read( template_path )
+			@template = File.read( template_path, encoding: "UTF-8" )
 		end
 
 		def render( date:, body: )

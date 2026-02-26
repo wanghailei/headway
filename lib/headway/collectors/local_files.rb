@@ -48,7 +48,7 @@ module Headway
 					end
 					.sort
 					.map do | name |
-						item_name = File.basename( name, ".md" )
+						item_name = File.basename( name, ".md" ).force_encoding( "UTF-8" )
 						{
 							name: item_name,
 							files: [ read_file( @path, name ) ]
@@ -72,7 +72,7 @@ module Headway
 
 			def read_file( dir, filename )
 				path = File.join( dir, filename )
-				{ filename: filename, content: File.read( path ) }
+				{ filename: filename, content: File.read( path, encoding: "UTF-8" ) }
 			end
 		end
 	end
