@@ -23,5 +23,7 @@ schedule:
   interval_hours: 168
 
 dingtalk_bot:
-  enabled: false
-  notify_user_ids: []
+  enabled: true
+  notify_user_ids:
+    - "065819201429325054"
+    - "111963172829418384"
