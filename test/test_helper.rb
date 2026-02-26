@@ -1,5 +1,4 @@
-# Shared test configuration for Headway. Sets up Bundler, loads Headway
-# (which activates Zeitwerk autoloading), and configures minitest.
+# Shared test configuration.
 
 require "bundler/setup"
 require "minitest/autorun"
@@ -7,7 +6,7 @@ require "fileutils"
 require "tmpdir"
 
 $LOAD_PATH.unshift File.expand_path( "../lib", __dir__ )
-require "headway"
+require "pulse"
 
 # Fake AI client for testing. Accepts one or more responses and returns
 # them sequentially across chat calls. If more calls are made than

@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+# CLI entry point. Loads Bundler, dotenv, and dispatches to the
+# Thor-based CLI.
+
+require "bundler/setup"
+require "dotenv/load"
+
+$LOAD_PATH.unshift File.expand_path( "../lib", __dir__ )
+require "pulse"
+
+Pulse::CLI.start( ARGV )

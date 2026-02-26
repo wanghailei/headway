@@ -1,4 +1,4 @@
-# Headway dependencies. Stdlib + Rails-ecosystem + battle-tested gems.
+# Dependencies. Stdlib + Rails-ecosystem + battle-tested gems.
 
 source "https://rubygems.org"
 
