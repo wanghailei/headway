@@ -9,9 +9,8 @@ module Pulse
 		class DocReader
 			DINGTALK_DOC_PATTERN = %r{https?://alidocs\.dingtalk\.com/\S+}
 
-			def initialize( client:, operator_id: )
+			def initialize( client: )
 				@client = client
-				@operator_id = operator_id
 				@logger = Logger.new( $stderr, progname: "DocReader" )
 			end
 
@@ -21,10 +20,12 @@ module Pulse
 				text.scan( DINGTALK_DOC_PATTERN )
 			end
 
-			# Fetches document content as markdown. Returns content string
-			# or nil on any failure (logged, not raised).
-			def fetch( url, connection: nil )
-				dentry = lookup_dentry( url, connection: connection )
+			# Fetches document content as markdown. The operator_id is the
+			# sender's staff ID — using the sender's identity ensures they
+			# have permission to access the doc they shared.
+			# Returns content string or nil on any failure (logged, not raised).
+			def fetch( url, operator_id:, connection: nil )
+				dentry = lookup_dentry( url, operator_id: operator_id, connection: connection )
 				return nil unless dentry
 
 				dentry_uuid = dentry["dentryUuid"]
@@ -38,10 +39,10 @@ module Pulse
 
 		private
 
-			def lookup_dentry( url, connection: nil )
+			def lookup_dentry( url, operator_id:, connection: nil )
 				@client.get(
 					"/v2.0/doc/dentries/queryByUrl",
-					params: { url: url, operatorId: @operator_id },
+					params: { url: url, operatorId: operator_id },
 					connection: connection
 				)
 			end

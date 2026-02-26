@@ -38,19 +38,19 @@ module Pulse
 				content += "- **发送人**: #{sender}\n"
 				content += "- **时间**: #{time}\n\n" if time
 				content += text
-				content += fetch_doc_contents( text )
+				content += fetch_doc_contents( text, msg["senderStaffId"] )
 
 				{ filename: "mention-#{sender}-#{time || "unknown"}", content: content }
 			end
 
-			def fetch_doc_contents( text )
-				return "" unless @doc_reader
+			def fetch_doc_contents( text, sender_staff_id )
+				return "" unless @doc_reader && sender_staff_id
 
 				urls = DingTalk::DocReader.extract_urls( text )
 				return "" if urls.empty?
 
 				parts = urls.filter_map do | url |
-					body = @doc_reader.fetch( url )
+					body = @doc_reader.fetch( url, operator_id: sender_staff_id )
 					"\n\n---\n\n**附件文档** (#{url}):\n\n#{body}" if body
 				end
 				parts.join

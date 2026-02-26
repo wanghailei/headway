@@ -79,6 +79,7 @@ class TestDingtalkMentions < Minitest::Test
 		queue = Thread::Queue.new
 		queue << {
 			"senderNick" => "Alice",
+			"senderStaffId" => "staff-alice",
 			"text" => { "content" => "请看文档 #{doc_url}" },
 			"createAt" => 1700000000000
 		}
@@ -114,6 +115,7 @@ class TestDingtalkMentions < Minitest::Test
 		queue = Thread::Queue.new
 		queue << {
 			"senderNick" => "Carol",
+			"senderStaffId" => "staff-carol",
 			"text" => { "content" => "https://alidocs.dingtalk.com/i/nodes/fail" }
 		}
 

@@ -79,9 +79,9 @@ class TestDocReader < Minitest::Test
 		conn = build_connection( stubs )
 
 		client = Pulse::DingTalk::Client.new( app_key: "key", app_secret: "secret" )
-		reader = Pulse::DingTalk::DocReader.new( client: client, operator_id: "op123" )
+		reader = Pulse::DingTalk::DocReader.new( client: client )
 
-		result = reader.fetch( "https://alidocs.dingtalk.com/i/nodes/abc123", connection: conn )
+		result = reader.fetch( "https://alidocs.dingtalk.com/i/nodes/abc123", operator_id: "op123", connection: conn )
 		assert_equal "# Hello World\n\nDoc body here.", result
 		stubs.verify_stubbed_calls
 	end
@@ -99,9 +99,9 @@ class TestDocReader < Minitest::Test
 		conn = build_connection( stubs )
 
 		client = Pulse::DingTalk::Client.new( app_key: "key", app_secret: "secret" )
-		reader = Pulse::DingTalk::DocReader.new( client: client, operator_id: "op123" )
+		reader = Pulse::DingTalk::DocReader.new( client: client )
 
-		result = reader.fetch( "https://alidocs.dingtalk.com/i/nodes/abc123", connection: conn )
+		result = reader.fetch( "https://alidocs.dingtalk.com/i/nodes/abc123", operator_id: "op123", connection: conn )
 		assert_nil result
 	end
 
@@ -118,9 +118,9 @@ class TestDocReader < Minitest::Test
 		conn = build_connection( stubs )
 
 		client = Pulse::DingTalk::Client.new( app_key: "key", app_secret: "secret" )
-		reader = Pulse::DingTalk::DocReader.new( client: client, operator_id: "op123" )
+		reader = Pulse::DingTalk::DocReader.new( client: client )
 
-		result = reader.fetch( "https://alidocs.dingtalk.com/i/nodes/abc123", connection: conn )
+		result = reader.fetch( "https://alidocs.dingtalk.com/i/nodes/abc123", operator_id: "op123", connection: conn )
 		assert_nil result
 	end
 end

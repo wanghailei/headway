@@ -110,9 +110,7 @@ module Pulse
 		end
 
 		def build_doc_reader
-			operator_id = @config.dingtalk_operator_union_id
-			return nil unless operator_id
-			DingTalk::DocReader.new( client: dingtalk_client, operator_id: operator_id )
+			DingTalk::DocReader.new( client: dingtalk_client )
 		end
 
 		def bot_messenger
