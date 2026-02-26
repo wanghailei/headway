@@ -21,6 +21,7 @@ module Pulse
 			mention_queue = Thread::Queue.new
 			reply_queue = Thread::Queue.new
 			runner = Runner.new( config, mention_queue: mention_queue )
+			doc_runner = DocUpdateRunner.new( config )
 
 			stream = nil
 			if config.dingtalk_bot_enabled?
@@ -28,9 +29,30 @@ module Pulse
 					app_key: config.dingtalk_app_key,
 					app_secret: config.dingtalk_app_secret,
 					on_message: ->( msg ) {
-						mention_queue << msg
+						text = msg.dig( "text", "content" )&.strip || msg["content"] || ""
 						webhook = msg["sessionWebhook"]
-						reply_queue << webhook if webhook
+
+						if DingTalk::DocReader.extract_urls( text ).any?
+							Thread.new do
+								report = doc_runner.process( msg )
+								if report && webhook
+									DingTalk::Stream.reply_via_webhook( webhook,
+										msgtype: "text",
+										text: { content: "已将文档内容整合到进度报告中" }
+									)
+								else
+									mention_queue << msg
+									reply_queue << webhook if webhook
+								end
+							rescue => e
+								$stderr.puts "DocUpdateRunner error: #{e.class}: #{e.message}"
+								mention_queue << msg
+								reply_queue << webhook if webhook
+							end
+						else
+							mention_queue << msg
+							reply_queue << webhook if webhook
+						end
 					}
 				)
 				stream.start

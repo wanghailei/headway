@@ -19,6 +19,20 @@ module Pulse
 			report
 		end
 
+		def self.find_previous_report( publishers )
+			output_dir = publishers
+				.select { | p | p["type"] == "markdown_file" }
+				.map { | p | p["path"] }
+				.first
+
+			return nil unless output_dir && File.directory?( output_dir )
+
+			reports = Dir.glob( File.join( output_dir, "RP.*.md" ) ).sort
+			return nil if reports.empty?
+
+			File.read( reports.last, encoding: "UTF-8" )
+		end
+
 	private
 
 		def collect
@@ -60,17 +74,7 @@ module Pulse
 		end
 
 		def find_previous_report
-			output_dir = @config.publishers
-				.select { | p | p["type"] == "markdown_file" }
-				.map { | p | p["path"] }
-				.first
-
-			return nil unless output_dir && File.directory?( output_dir )
-
-			reports = Dir.glob( File.join( output_dir, "RP.*.md" ) ).sort
-			return nil if reports.empty?
-
-			File.read( reports.last, encoding: "UTF-8" )
+			self.class.find_previous_report( @config.publishers )
 		end
 
 		def render( body )
