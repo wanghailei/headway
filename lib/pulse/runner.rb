@@ -45,7 +45,8 @@ module Pulse
 				when "dingtalk_mentions"
 					if @mention_queue
 						items.concat Collectors::DingtalkMentions.new(
-							queue: @mention_queue
+							queue: @mention_queue,
+							doc_reader: build_doc_reader
 						).collect
 					end
 				end
@@ -106,6 +107,12 @@ module Pulse
 				app_key: @config.dingtalk_app_key,
 				app_secret: @config.dingtalk_app_secret
 			)
+		end
+
+		def build_doc_reader
+			operator_id = @config.dingtalk_operator_union_id
+			return nil unless operator_id
+			DingTalk::DocReader.new( client: dingtalk_client, operator_id: operator_id )
 		end
 
 		def bot_messenger

@@ -1,7 +1,18 @@
 # Tests for Pulse::Collectors::DingtalkMentions. Verifies queue draining,
-# message formatting, and empty queue behavior using a real Thread::Queue.
+# message formatting, empty queue behavior, and doc enrichment.
 
 require "test_helper"
+
+# Fake doc reader for testing doc enrichment in mentions.
+class FakeDocReader
+	def initialize( docs = {} )
+		@docs = docs
+	end
+
+	def fetch( url, **_opts )
+		@docs[url]
+	end
+end
 
 class TestDingtalkMentions < Minitest::Test
 	def test_drains_queue_and_formats_mentions
@@ -59,5 +70,57 @@ class TestDingtalkMentions < Minitest::Test
 		first = result.first[:files].first
 		assert_includes first[:content], "unknown"
 		assert_includes first[:content], "raw content"
+	end
+
+	def test_enriches_mention_with_doc_content
+		doc_url = "https://alidocs.dingtalk.com/i/nodes/abc123"
+		doc_reader = FakeDocReader.new( doc_url => "# Project Plan\n\nDetails here." )
+
+		queue = Thread::Queue.new
+		queue << {
+			"senderNick" => "Alice",
+			"text" => { "content" => "请看文档 #{doc_url}" },
+			"createAt" => 1700000000000
+		}
+
+		collector = Pulse::Collectors::DingtalkMentions.new( queue: queue, doc_reader: doc_reader )
+		result = collector.collect
+
+		content = result.first[:files].first[:content]
+		assert_includes content, "请看文档"
+		assert_includes content, "附件文档"
+		assert_includes content, "# Project Plan"
+		assert_includes content, "Details here."
+	end
+
+	def test_no_enrichment_without_doc_reader
+		queue = Thread::Queue.new
+		queue << {
+			"senderNick" => "Bob",
+			"text" => { "content" => "看看 https://alidocs.dingtalk.com/i/nodes/xyz" }
+		}
+
+		collector = Pulse::Collectors::DingtalkMentions.new( queue: queue )
+		result = collector.collect
+
+		content = result.first[:files].first[:content]
+		assert_includes content, "alidocs.dingtalk.com"
+		refute_includes content, "附件文档"
+	end
+
+	def test_enrichment_skips_failed_doc_fetch
+		doc_reader = FakeDocReader.new # no docs → returns nil for all
+
+		queue = Thread::Queue.new
+		queue << {
+			"senderNick" => "Carol",
+			"text" => { "content" => "https://alidocs.dingtalk.com/i/nodes/fail" }
+		}
+
+		collector = Pulse::Collectors::DingtalkMentions.new( queue: queue, doc_reader: doc_reader )
+		result = collector.collect
+
+		content = result.first[:files].first[:content]
+		refute_includes content, "附件文档"
 	end
 end

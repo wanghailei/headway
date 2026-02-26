@@ -63,6 +63,10 @@ module Pulse
 			ENV["DINGTALK_ROBOT_CODE"] || dingtalk_app_key
 		end
 
+		def dingtalk_operator_union_id
+			ENV["DINGTALK_OPERATOR_UNION_ID"] || @data.dig( "dingtalk_bot", "operator_union_id" )
+		end
+
 		# True when the API key came from Codex CLI's OAuth token rather
 		# than an explicit env var. Runner uses this to pick the Responses
 		# API endpoint (covered by ChatGPT Pro) instead of Chat Completions.
