@@ -62,7 +62,7 @@ class TestSynthesizer < Minitest::Test
 		fake = FakeAIClient.new( extraction_json, "Section A", "Section B" )
 		result = Pulse::Synthesizer.new( fake ).synthesize( items )
 
-		assert_equal "Section A\n\nSection B", result
+		assert_equal "Section A\n\n---\n\nSection B", result
 	end
 
 	def test_synthesis_prompt_includes_issue_name_and_excerpts
