@@ -57,7 +57,9 @@ module Pulse
 			end
 
 			def extract_text( msg )
-				msg.dig( "text", "content" )&.strip || msg["content"] || ""
+				text = msg.dig( "text", "content" )&.strip || ""
+				card_url = msg.dig( "content", "biz_custom_action_url" ) if msg["content"].is_a?( Hash )
+				[ text, card_url ].compact.join( " " )
 			end
 
 			def format_time( ms )

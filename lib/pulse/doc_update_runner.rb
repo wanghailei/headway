@@ -1,8 +1,8 @@
-# Focused pipeline for incremental doc-to-report merging.
-# When the bot receives a doc link, this runner reads the doc,
-# merges its content into the existing report via a single AI call,
-# and publishes — skipping the full collect-synthesise cycle.
-# Returns the updated report, or nil to signal fallback to full pipeline.
+# Focused pipeline for incremental report updates from bot messages.
+# Handles both doc links (fetches content, merges) and plain text
+# (merges directly). Uses a single AI call instead of the full
+# collect-synthesise cycle. Returns the updated report, or nil to
+# signal fallback to full pipeline.
 
 require "date"
 require "logger"
@@ -10,15 +10,15 @@ require "logger"
 module Pulse
 	class DocUpdateRunner
 		MERGE_SYSTEM = <<~PROMPT
-			你是 Pulse，一个进度追踪助手。你将收到当前的进度报告和一份新文档内容。
-			请将文档内容整合到进度报告中。
+			你是 Pulse，一个进度追踪助手。你将收到当前的进度报告和一条新的更新信息。
+			请将更新信息整合到进度报告中。
 
 			今天的日期是：%<today>s
 
 			规则：
-			- 如果文档内容与报告中某个已有议题相关，更新该议题的段落
-			- 如果文档引入了新的议题，添加新的 ### 段落
-			- 保留所有与文档无关的现有段落不变
+			- 如果更新内容与报告中某个已有议题相关，更新该议题的段落
+			- 如果更新内容引入了新的议题，添加新的 ### 段落
+			- 保留所有与更新内容无关的现有段落不变
 			- 保持标准格式：### 加状态emoji加议题名称、负责人、截止日期、最后更新、正文
 			- 状态指示符：🟢 正常、🟡 关注、🔴 阻塞、✅ 完成
 			- 简洁直接，只陈述事实
@@ -33,18 +33,22 @@ module Pulse
 		end
 
 		def process( msg )
-			text = msg.dig( "text", "content" )&.strip || msg["content"] || ""
-			urls = DingTalk::DocReader.extract_urls( text )
-			return nil if urls.empty?
+			text = msg.dig( "text", "content" )&.strip || ""
+			card_url = msg.dig( "content", "biz_custom_action_url" ) if msg["content"].is_a?( Hash )
+			all_text = [ text, card_url ].compact.join( " " )
 
 			previous = Runner.find_previous_report( @config.publishers )
 			return nil unless previous
 
-			doc_contents = fetch_docs( urls, msg["senderStaffId"] )
-			return nil if doc_contents.empty?
+			# Collect update content: doc contents + plain text
+			parts = []
+			urls = DingTalk::DocReader.extract_urls( all_text )
+			parts.concat fetch_docs( urls, msg["senderStaffId"] ) if urls.any?
+			parts << text unless text.empty?
+			return nil if parts.empty?
 
 			sender = msg["senderNick"] || "unknown"
-			body = merge_via_ai( previous, doc_contents, sender )
+			body = merge_via_ai( previous, parts, sender )
 			report = render( body )
 			publish( report )
 			report
@@ -63,12 +67,12 @@ module Pulse
 			end
 		end
 
-		def merge_via_ai( previous_report, doc_contents, sender )
-			docs_text = doc_contents.map.with_index( 1 ) do | content, i |
-				"## 文档 #{i}\n\n#{content}"
+		def merge_via_ai( previous_report, parts, sender )
+			updates_text = parts.map.with_index( 1 ) do | content, i |
+				"## 更新 #{i}\n\n#{content}"
 			end.join( "\n\n---\n\n" )
 
-			prompt = "## 当前进度报告\n\n#{previous_report}\n\n---\n\n## 新收到的文档（由 #{sender} 提交）\n\n#{docs_text}"
+			prompt = "## 当前进度报告\n\n#{previous_report}\n\n---\n\n## 新收到的更新（由 #{sender} 提交）\n\n#{updates_text}"
 			system = format( MERGE_SYSTEM, today: Date.today.to_s )
 
 			@ai_client.chat( prompt, system: system )
