@@ -4,9 +4,11 @@
 
 module Pulse
 	class Scheduler
-		def initialize( runner, interval_hours:, output: $stdout )
+		def initialize( runner, interval_hours:, mention_queue: nil, reply_queue: nil, output: $stdout )
 			@runner = runner
 			@interval_seconds = ( interval_hours * 3600 ).to_i
+			@mention_queue = mention_queue
+			@reply_queue = reply_queue
 			@output = output
 			@running = false
 		end
@@ -40,10 +42,35 @@ module Pulse
 		def run_once
 			timestamp = Time.now.strftime( "%Y-%m-%d %H:%M:%S" )
 			log "[#{timestamp}] Run starting..."
-			@runner.run
+			report = @runner.run
 			log "[#{timestamp}] Run completed successfully."
+			send_replies( report ) if report
 		rescue => e
 			log "[#{timestamp}] Run failed: #{e.class}: #{e.message}"
+		end
+
+		# Drain the reply queue and send the report to each pending
+		# sessionWebhook as a markdown message.
+		def send_replies( report )
+			return unless @reply_queue
+
+			webhooks = []
+			webhooks << @reply_queue.pop( true ) until @reply_queue.empty?
+			return if webhooks.empty?
+
+			body = {
+				msgtype: "markdown",
+				markdown: { title: "Pulse Report", text: report }
+			}
+
+			webhooks.each do | webhook |
+				DingTalk::Stream.reply_via_webhook( webhook, body )
+				log "Reply sent to sessionWebhook"
+			rescue => e
+				log "Failed to send reply: #{e.class}: #{e.message}"
+			end
+		rescue ThreadError
+			# Queue was empty between check and pop — safe to ignore
 		end
 
 		def trap_signals
@@ -60,10 +87,14 @@ module Pulse
 
 		# Sleep in 1-second increments so we can check @running and
 		# respond to signal-triggered stops without waiting the full
-		# interval.
+		# interval. Also wakes up early if a mention arrives in the queue.
 		def interruptible_sleep( seconds )
 			seconds.times do
 				break unless @running
+				if @mention_queue && !@mention_queue.empty?
+					log "Mention received — triggering immediate run"
+					break
+				end
 				sleep 1
 			end
 		end

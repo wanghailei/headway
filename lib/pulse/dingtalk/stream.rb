@@ -41,6 +41,17 @@ module Pulse
 				@running && @thread&.alive?
 			end
 
+			# Post a DingTalk message body to a sessionWebhook URL.
+			# Usable both internally and by external callers (e.g. Scheduler).
+			def self.reply_via_webhook( webhook, body )
+				return unless webhook
+
+				Faraday.post( webhook ) do | req |
+					req.headers["Content-Type"] = "application/json"
+					req.body = JSON.generate( body )
+				end
+			end
+
 		private
 
 			def run_loop
@@ -125,23 +136,14 @@ module Pulse
 			def handle_callback( ws, topic, message_id, data )
 				if topic == BOT_TOPIC
 					payload = JSON.parse( data["data"] || "{}" )
-					reply_with_ack_emoji( payload )
+					reply_via_webhook( payload["sessionWebhook"], msgtype: "text", text: { content: "处理中..." } )
 					@on_message&.call( payload )
 				end
 				send_ack( ws, message_id )
 			end
 
-			def reply_with_ack_emoji( payload )
-				webhook = payload["sessionWebhook"]
-				return unless webhook
-
-				Faraday.post( webhook ) do | req |
-					req.headers["Content-Type"] = "application/json"
-					req.body = JSON.generate( {
-						msgtype: "text",
-						text: { content: "👌" }
-					} )
-				end
+			def reply_via_webhook( webhook, body )
+				self.class.reply_via_webhook( webhook, body )
 			rescue => e
 				log "Stream: failed to reply: #{e.message}"
 			end

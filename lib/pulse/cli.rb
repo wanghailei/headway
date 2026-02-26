@@ -19,6 +19,7 @@ module Pulse
 		def watch
 			config = Config.new
 			mention_queue = Thread::Queue.new
+			reply_queue = Thread::Queue.new
 			runner = Runner.new( config, mention_queue: mention_queue )
 
 			stream = nil
@@ -26,13 +27,22 @@ module Pulse
 				stream = DingTalk::Stream.new(
 					app_key: config.dingtalk_app_key,
 					app_secret: config.dingtalk_app_secret,
-					on_message: ->( msg ) { mention_queue << msg }
+					on_message: ->( msg ) {
+						mention_queue << msg
+						webhook = msg["sessionWebhook"]
+						reply_queue << webhook if webhook
+					}
 				)
 				stream.start
 				puts "Pulse v#{VERSION} — bot stream started"
 			end
 
-			scheduler = Scheduler.new( runner, interval_hours: config.interval_hours )
+			scheduler = Scheduler.new(
+				runner,
+				interval_hours: config.interval_hours,
+				mention_queue: mention_queue,
+				reply_queue: reply_queue
+			)
 
 			at_exit { stream&.stop }
 			puts "Pulse v#{VERSION} — watching (every #{config.interval_hours}h, Ctrl+C to stop)"

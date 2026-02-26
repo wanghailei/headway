@@ -16,6 +16,7 @@ module Pulse
 			body = synthesize( items )
 			report = render( body )
 			publish( report )
+			report
 		end
 
 	private

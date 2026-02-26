@@ -66,6 +66,21 @@ class TestRunner < Minitest::Test
 		assert_includes content, "Project Alpha"
 	end
 
+	def test_run_returns_report
+		extraction_json = JSON.generate( [
+			{ name: "Project Alpha", excerpts: [ "Sprint 4 on track. Backend migration done." ] }
+		] )
+		fake_ai = FakeAIClient.new( extraction_json, "### 🟢 Project Alpha\nOn track." )
+		config = Pulse::Config.new( @config_path )
+
+		runner = Pulse::Runner.new( config, ai_client: fake_ai, template_path: @template_path )
+		report = runner.run
+
+		assert_kind_of String, report
+		assert_includes report, "Pulse Report"
+		assert_includes report, "Project Alpha"
+	end
+
 	def test_iterative_reporting_uses_previous_report
 		# Create a previous report in output
 		FileUtils.mkdir_p( @output_dir )
