@@ -60,7 +60,7 @@ module Pulse
 		end
 
 		def dingtalk_robot_code
-			dingtalk_app_key
+			ENV["DINGTALK_ROBOT_CODE"] || dingtalk_app_key
 		end
 
 		# True when the API key came from Codex CLI's OAuth token rather

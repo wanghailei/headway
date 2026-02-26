@@ -49,7 +49,8 @@ class TestDingtalkBotNotify < Minitest::Test
 		assert_includes content, "Server outage"
 		assert_includes content, "Budget review"
 		assert_includes content, "需要关注"
-		assert_includes content, "1 项正常进行中"
+		assert_includes content, "Feature rollout"
+		assert_includes content, "正常进行中"
 	end
 
 	def test_highlights_tagged_items
@@ -65,10 +66,11 @@ class TestDingtalkBotNotify < Minitest::Test
 
 		content = @messenger.sends.first[:content]
 		assert_includes content, "Deploy fix"
-		assert_includes content, "1 项正常进行中"
+		assert_includes content, "Regular update"
+		assert_includes content, "正常进行中"
 	end
 
-	def test_includes_report_url_in_normal_items
+	def test_shows_all_normal_items_inline
 		report = <<~MD
 			### 🟢 Item A
 			Normal.
@@ -77,24 +79,12 @@ class TestDingtalkBotNotify < Minitest::Test
 			Also normal.
 		MD
 
-		build_publisher( report_url: "https://example.com/r" ).publish( report )
+		build_publisher.publish( report )
 
 		content = @messenger.sends.first[:content]
-		assert_includes content, "https://example.com/r"
-		assert_includes content, "2 项正常进行中"
-	end
-
-	def test_no_report_url_shows_plain_label
-		report = <<~MD
-			### 🟢 Item A
-			Normal.
-		MD
-
-		build_publisher( report_url: nil ).publish( report )
-
-		content = @messenger.sends.first[:content]
-		assert_includes content, "1 项正常进行中"
-		refute_includes content, "]()"
+		assert_includes content, "Item A"
+		assert_includes content, "Item B"
+		assert_includes content, "正常进行中"
 	end
 
 	def test_skips_when_no_user_ids
@@ -133,6 +123,7 @@ class TestDingtalkBotNotify < Minitest::Test
 
 		content = @messenger.sends.first[:content]
 		assert_includes content, "Active issue"
-		assert_includes content, "1 项正常进行中"
+		assert_includes content, "Completed task"
+		assert_includes content, "正常进行中"
 	end
 end

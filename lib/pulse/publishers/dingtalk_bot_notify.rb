@@ -71,13 +71,8 @@ module Pulse
 				end
 
 				if normal.any?
-					count = normal.size
-					label = "\u{1F7E2} #{count} 项正常进行中"
-					if @report_url
-						parts << "[#{label}](#{@report_url})"
-					else
-						parts << label
-					end
+					parts << "**\u{1F7E2} 正常进行中**\n"
+					normal.each { | s | parts << s }
 				end
 
 				if parts.empty?
